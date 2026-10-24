@@ -3,13 +3,17 @@ import { useCallback, useEffect, useState } from 'react';
 export function useLoad<T>(loader: () => Promise<T>, initial: T) {
   const [data, setData] = useState<T>(initial);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
+    setLoading(true);
     try {
       setData(await loader());
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
     }
   }, [loader]);
 
@@ -17,5 +21,5 @@ export function useLoad<T>(loader: () => Promise<T>, initial: T) {
     void reload();
   }, [reload]);
 
-  return { data, error, reload };
+  return { data, error, loading, reload };
 }

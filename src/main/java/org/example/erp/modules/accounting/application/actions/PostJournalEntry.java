@@ -15,18 +15,22 @@ import java.util.Map;
 public final class PostJournalEntry {
     private final AccountRepository accounts;
     private final JournalEntryRepository entries;
+    private final PeriodLockRepository periods;
     private final TransactionRunner tx;
     private final CurrentActor actor;
 
-    public PostJournalEntry(AccountRepository accounts, JournalEntryRepository entries, TransactionRunner tx, CurrentActor actor) {
+    public PostJournalEntry(AccountRepository accounts, JournalEntryRepository entries, PeriodLockRepository periods,
+                            TransactionRunner tx, CurrentActor actor) {
         this.accounts = accounts;
         this.entries = entries;
+        this.periods = periods;
         this.tx = tx;
         this.actor = actor;
     }
 
     public JournalEntryDTO handle(PostEntryCommand c, EntryKind kind) {
         return tx.run(() -> {
+            periods.get().ensureOpen(c.date());
             Map<String, String> names = new HashMap<>();
             List<JournalLine> lines = c.lines().stream().map(l -> {
                 Account account = accounts.findByCode(l.accountCode()).filter(Account::isActive)

@@ -45,6 +45,16 @@ public class InventoryModuleConfig {
     }
 
     @Bean
+    public ReceiveStock receiveStock(ProductRepository products, StockMovementRepository movements, TransactionRunner tx) {
+        return new ReceiveStock(products, movements, tx);
+    }
+
+    @Bean
+    ListLowStockProducts listLowStockProducts(ProductRepository products) {
+        return new ListLowStockProducts(products);
+    }
+
+    @Bean
     ListStockMovements listStockMovements(StockMovementRepository movements) {
         return new ListStockMovements(movements);
     }

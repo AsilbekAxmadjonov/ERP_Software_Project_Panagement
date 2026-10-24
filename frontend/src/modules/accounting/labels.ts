@@ -23,3 +23,6 @@ export const ORIGIN: Record<EntryKind, { label: string; tone: Tone }> = {
   [EntryKind.OTHER_INCOME]: { label: __('Other income'), tone: 'green' },
   [EntryKind.PAYROLL]: { label: __('Payroll'), tone: 'purple' },
 };
+
+/** Cash flow groups by entry origin; an origin the backend adds before this table is updated shows its raw name. */
+export const originLabel = (kind: string): string => (ORIGIN as Partial<Record<string, { label: string }>>)[kind]?.label ?? kind;

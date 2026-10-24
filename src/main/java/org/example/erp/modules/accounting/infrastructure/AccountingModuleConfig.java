@@ -77,6 +77,21 @@ public class AccountingModuleConfig {
     }
 
     @Bean
+    public GetProfitAndLoss getProfitAndLoss(AccountRepository accounts, LedgerReadModel ledger, Clock clock) {
+        return new GetProfitAndLoss(accounts, ledger, clock);
+    }
+
+    @Bean
+    public GetBalanceSheet getBalanceSheet(AccountRepository accounts, LedgerReadModel ledger, Clock clock) {
+        return new GetBalanceSheet(accounts, ledger, clock);
+    }
+
+    @Bean
+    public GetCashFlow getCashFlow(AccountRepository accounts, LedgerReadModel ledger, Clock clock) {
+        return new GetCashFlow(accounts, ledger, clock);
+    }
+
+    @Bean
     GetAccountLedger getAccountLedger(AccountRepository accounts, LedgerReadModel ledger) {
         return new GetAccountLedger(accounts, ledger);
     }

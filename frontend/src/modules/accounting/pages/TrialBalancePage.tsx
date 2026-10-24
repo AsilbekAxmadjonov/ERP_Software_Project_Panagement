@@ -1,46 +1,44 @@
+import { Printer } from 'lucide-react';
 import { money } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
 import { useLoad } from '../../../lib/useLoad';
+import { Badge } from '../../../ui/Badge';
+import { ControlPanel } from '../../../ui/ControlPanel';
+import { ListView, type Column } from '../../../ui/ListView';
+import { useSearch } from '../../../ui/search';
 import { accountingApi } from '../api';
+import { KIND_LABEL } from '../labels';
 import type { TrialBalance } from '../types';
+
+type Row = TrialBalance['rows'][number];
 
 const EMPTY: TrialBalance = { rows: [], totalDebit: 0, totalCredit: 0 };
 
+const COLUMNS: readonly Column<Row>[] = [
+  { key: 'code', label: __('Code'), render: (r) => <span className="font-mono">{r.code}</span>, sortValue: (r) => r.code },
+  { key: 'name', label: __('Account'), render: (r) => r.name, sortValue: (r) => r.name },
+  { key: 'type', label: __('Type'), render: (r) => KIND_LABEL[r.type], className: 'text-gray-500' },
+  { key: 'debit', label: __('Debit'), align: 'right', render: (r) => (r.debit > 0 ? money(r.debit) : ''), sortValue: (r) => r.debit, sum: (r) => r.debit, formatSum: money },
+  { key: 'credit', label: __('Credit'), align: 'right', render: (r) => (r.credit > 0 ? money(r.credit) : ''), sortValue: (r) => r.credit, sum: (r) => r.credit, formatSum: money },
+];
+
 export function TrialBalancePage() {
-  const { data, error } = useLoad(accountingApi.trialBalance, EMPTY);
+  const { data, loading } = useLoad(accountingApi.trialBalance, EMPTY);
   const balanced = Math.abs(data.totalDebit - data.totalCredit) < 0.005;
+  const search = useSearch(data.rows, {
+    text: (r) => [r.code, r.name],
+    groupBys: [{ key: 'type', label: __('Type'), value: (r) => KIND_LABEL[r.type] }],
+  });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{__('Trial balance')}</h1>
-        <span className={balanced ? 'rounded bg-green-100 px-2 py-1 text-sm text-green-800' : 'rounded bg-red-100 px-2 py-1 text-sm text-red-800'}>
-          {balanced ? __('Ledger is balanced') : __('Ledger is NOT balanced')}
-        </span>
-      </div>
-      {error !== null && <p role="alert" className="text-sm text-red-600">{error}</p>}
-      <div className="card overflow-x-auto p-0">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead><tr><th className="th">{__('Code')}</th><th className="th">{__('Account')}</th><th className="th text-right">{__('Debit')}</th><th className="th text-right">{__('Credit')}</th></tr></thead>
-          <tbody className="divide-y divide-slate-100">
-            {data.rows.map((r) => (
-              <tr key={r.code}>
-                <td className="td font-mono">{r.code}</td>
-                <td className="td">{r.name}</td>
-                <td className="td text-right">{r.debit > 0 ? money(r.debit) : ''}</td>
-                <td className="td text-right">{r.credit > 0 ? money(r.credit) : ''}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="font-semibold">
-              <td className="td" colSpan={2}>{__('Total')}</td>
-              <td className="td text-right">{money(data.totalDebit)}</td>
-              <td className="td text-right">{money(data.totalCredit)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
+    <>
+      <ControlPanel
+        breadcrumbs={[{ label: __('Trial balance') }]}
+        actions={<button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />{__('Print')}</button>}
+        search={search}
+        aside={<Badge tone={balanced ? 'green' : 'red'}>{balanced ? __('Ledger is balanced') : __('Ledger is NOT balanced')}</Badge>}
+      />
+      <ListView rows={search.results} columns={COLUMNS} rowKey={(r) => r.code} loading={loading} groupBy={search.groupBy} />
+    </>
   );
 }

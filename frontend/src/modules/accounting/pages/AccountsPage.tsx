@@ -1,79 +1,88 @@
-import { useState, type FormEvent } from 'react';
-import { ApiError } from '../../../lib/http';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { __ } from '../../../lib/i18n';
 import { useLoad } from '../../../lib/useLoad';
+import { Badge } from '../../../ui/Badge';
+import { ControlPanel } from '../../../ui/ControlPanel';
+import { Dialog } from '../../../ui/Dialog';
+import { ListView, type Column } from '../../../ui/ListView';
+import { useSearch } from '../../../ui/search';
+import { useToast } from '../../../ui/Toast';
 import { accountingApi } from '../api';
-import { AccountKind } from '../types';
+import { KIND_LABEL } from '../labels';
+import { AccountKind, type Account } from '../types';
 
-const KIND_LABEL: Record<AccountKind, string> = {
-  [AccountKind.ASSET]: __('Asset'),
-  [AccountKind.LIABILITY]: __('Liability'),
-  [AccountKind.EQUITY]: __('Equity'),
-  [AccountKind.REVENUE]: __('Revenue'),
-  [AccountKind.EXPENSE]: __('Expense'),
-};
+const EMPTY_FORM = { code: '', name: '', type: AccountKind.ASSET as AccountKind };
 
 export function AccountsPage() {
-  const { data: accounts, error: loadError, reload } = useLoad(accountingApi.accounts, []);
-  const [form, setForm] = useState<{ code: string; name: string; type: AccountKind }>({ code: '', name: '', type: AccountKind.ASSET });
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
+  const { data: accounts, loading, reload } = useLoad(accountingApi.accounts, []);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  const create = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    try {
-      await accountingApi.createAccount(form);
-      setForm({ code: '', name: '', type: AccountKind.ASSET });
+  const search = useSearch(accounts, {
+    text: (a) => [a.code, a.name],
+    filters: [
+      ...Object.values(AccountKind).map((k) => ({ key: k, group: 'type', label: KIND_LABEL[k], test: (a: Account) => a.type === k })),
+      { key: 'active', group: 'state', label: __('Active'), test: (a) => a.active },
+      { key: 'archived', group: 'state', label: __('Archived'), test: (a) => !a.active },
+    ],
+    groupBys: [{ key: 'type', label: __('Type'), value: (a) => KIND_LABEL[a.type] }],
+  });
+
+  const toggle = (a: Account) =>
+    void toast.run(() => accountingApi.setAccountActive(a.code, !a.active).then(reload), a.active ? __('Account archived.') : __('Account restored.'));
+
+  const columns: readonly Column<Account>[] = [
+    { key: 'code', label: __('Code'), render: (a) => <span className="font-mono">{a.code}</span>, sortValue: (a) => a.code },
+    { key: 'name', label: __('Account name'), render: (a) => a.name, sortValue: (a) => a.name },
+    { key: 'type', label: __('Type'), render: (a) => KIND_LABEL[a.type], sortValue: (a) => a.type },
+    { key: 'state', label: __('Status'), render: (a) => (a.active ? <Badge tone="green">{__('Active')}</Badge> : <Badge tone="gray">{__('Archived')}</Badge>) },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right',
+      render: (a) => <button className="btn-link" onClick={() => toggle(a)}>{a.active ? __('Archive') : __('Restore')}</button>,
+    },
+  ];
+
+  const create = async () => {
+    const ok = await toast.run(() => accountingApi.createAccount(form), __('Account created.'));
+    if (ok) {
+      setCreating(false);
+      setForm(EMPTY_FORM);
       await reload();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : __('Something went wrong.'));
     }
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{__('Chart of accounts')}</h1>
-      <form onSubmit={create} className="card grid gap-3 sm:grid-cols-4">
-        <div>
-          <label className="label" htmlFor="a-code">{__('Code')}</label>
-          <input id="a-code" className="input" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="a-name">{__('Name')}</label>
-          <input id="a-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="a-type">{__('Type')}</label>
-          <select id="a-type" className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as AccountKind })}>
-            {Object.values(AccountKind).map((kind) => (
-              <option key={kind} value={kind}>{KIND_LABEL[kind]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-end"><button className="btn w-full">{__('Add account')}</button></div>
-        {(error ?? loadError) !== null && <p role="alert" className="text-sm text-red-600 sm:col-span-4">{error ?? loadError}</p>}
-      </form>
-
-      <div className="card overflow-x-auto p-0">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead><tr><th className="th">{__('Code')}</th><th className="th">{__('Name')}</th><th className="th">{__('Type')}</th><th className="th">{__('Status')}</th><th className="th" /></tr></thead>
-          <tbody className="divide-y divide-slate-100">
-            {accounts.map((a) => (
-              <tr key={a.id}>
-                <td className="td font-mono">{a.code}</td>
-                <td className="td">{a.name}</td>
-                <td className="td">{KIND_LABEL[a.type]}</td>
-                <td className="td">{a.active ? __('Active') : __('Inactive')}</td>
-                <td className="td text-right">
-                  <button className="btn-secondary" onClick={() => void accountingApi.setAccountActive(a.code, !a.active).then(reload)}>
-                    {a.active ? __('Deactivate') : __('Activate')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <>
+      <ControlPanel
+        breadcrumbs={[{ label: __('Chart of accounts') }]}
+        actions={<button className="btn" onClick={() => setCreating(true)}><Plus className="h-4 w-4" />{__('New')}</button>}
+        search={search}
+      />
+      <ListView rows={search.results} columns={columns} rowKey={(a) => a.id} loading={loading} groupBy={search.groupBy} rowClassName={(a) => (a.active ? '' : 'text-gray-400')} />
+      {creating && (
+        <Dialog title={__('New account')} onClose={() => setCreating(false)} onSubmit={create} submitLabel={__('Save')}>
+          <div className="grid gap-3 sm:grid-cols-[8rem_1fr]">
+            <div>
+              <label className="label" htmlFor="acc-code">{__('Code')}</label>
+              <input id="acc-code" className="input font-mono" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required autoFocus />
+            </div>
+            <div>
+              <label className="label" htmlFor="acc-name">{__('Account name')}</label>
+              <input id="acc-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="acc-type">{__('Type')}</label>
+              <select id="acc-type" className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as AccountKind })}>
+                {Object.values(AccountKind).map((k) => (<option key={k} value={k}>{KIND_LABEL[k]}</option>))}
+              </select>
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </>
   );
 }

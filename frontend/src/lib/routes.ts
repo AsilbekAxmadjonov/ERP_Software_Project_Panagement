@@ -31,6 +31,11 @@ const paths = {
   'purchase.orders.show': '/purchase/orders/:id',
   'purchase.payments': '/purchase/payments',
   'purchase.vendors': '/purchase/vendors',
+  'expenses.expenses': '/expenses',
+  'expenses.income': '/expenses/income',
+  'expenses.entries.show': '/expenses/entries/:id',
+  'expenses.categories': '/expenses/categories',
+  'expenses.report': '/expenses/report',
 } as const;
 
 export type RouteName = keyof typeof paths;

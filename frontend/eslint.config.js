@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
-const modules = ['identity', 'partners', 'accounting', 'inventory', 'sales', 'purchase', 'audit'];
+const modules = ['identity', 'partners', 'accounting', 'inventory', 'sales', 'purchase', 'audit', 'expenses'];
 
 // A module's frontend may not import another module's code; only the shell composes modules.
 const boundaryRules = modules.map((name) => ({

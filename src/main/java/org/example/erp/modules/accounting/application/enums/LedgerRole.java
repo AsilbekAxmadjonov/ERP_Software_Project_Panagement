@@ -11,7 +11,13 @@ public enum LedgerRole {
     SALES_REVENUE("4000", "Sales Revenue", AccountKind.REVENUE),
     COST_OF_GOODS_SOLD("5000", "Cost of Goods Sold", AccountKind.EXPENSE),
     OPERATING_EXPENSES("5100", "Operating Expenses", AccountKind.EXPENSE),
-    INVENTORY_LOSS("5200", "Inventory Loss / Adjustment", AccountKind.EXPENSE);
+    INVENTORY_LOSS("5200", "Inventory Loss / Adjustment", AccountKind.EXPENSE),
+    OTHER_INCOME("4100", "Other Income", AccountKind.REVENUE),
+    RENT_EXPENSE("6100", "Rent Expense", AccountKind.EXPENSE),
+    UTILITIES_EXPENSE("6200", "Utilities Expense", AccountKind.EXPENSE),
+    TRANSPORT_EXPENSE("6300", "Transport Expense", AccountKind.EXPENSE),
+    OFFICE_SUPPLIES_EXPENSE("6400", "Office Supplies Expense", AccountKind.EXPENSE),
+    OTHER_EXPENSES("6900", "Other Expenses", AccountKind.EXPENSE);
 
     private final String code;
     private final String defaultName;

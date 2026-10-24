@@ -34,6 +34,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/accounting/**").hasAnyRole("CEO", "MANAGER", "ACCOUNTANT")
                 .requestMatchers("/api/accounting/**").hasAnyRole("CEO", "ACCOUNTANT")
                 .requestMatchers(HttpMethod.POST, "/api/inventory/adjustments").hasAnyRole("CEO", "ACCOUNTANT")
+                .requestMatchers(HttpMethod.GET, "/api/expenses/**").hasAnyRole("CEO", "MANAGER", "ACCOUNTANT")
+                .requestMatchers("/api/expenses/**").hasAnyRole("CEO", "ACCOUNTANT")
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

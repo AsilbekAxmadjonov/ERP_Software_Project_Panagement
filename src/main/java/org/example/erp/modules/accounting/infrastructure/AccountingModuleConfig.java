@@ -91,12 +91,15 @@ public class AccountingModuleConfig {
         return new GetPartnerBalance(ledger);
     }
 
-    /** Default chart of accounts for an empty database: reference data every posting workflow relies on. */
+    /**
+     * Default chart of accounts: reference data every posting workflow relies on. Opens any well-known account that is
+     * missing, so databases created before a role was added get it too; existing accounts are left as they are.
+     */
     @Bean
     CommandLineRunner bootstrapChartOfAccounts(AccountRepository accounts) {
         return args -> {
-            if (accounts.count() > 0) return;
             for (LedgerRole role : LedgerRole.values()) {
+                if (accounts.findByCode(role.code()).isPresent()) continue;
                 accounts.save(Account.open(role.code(), role.defaultName(), AccountType.valueOf(role.kind().name())));
             }
         };

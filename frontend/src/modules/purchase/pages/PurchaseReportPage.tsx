@@ -6,6 +6,7 @@ import { route } from '../../../lib/routes';
 import { useLoad } from '../../../lib/useLoad';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { StatCard } from '../../../ui/EmptyState';
+import { listSheet } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import { Many2One } from '../../../ui/Many2One';
 import { purchaseApi, type ReportFilter } from '../api';
@@ -26,8 +27,8 @@ const COLUMNS: readonly Column<PurchaseReportRow>[] = [
   { key: 'order', label: __('Order'), render: (r) => r.order, sortValue: (r) => r.order },
   { key: 'supplier', label: __('Vendor'), render: (r) => r.supplier, sortValue: (r) => r.supplier },
   { key: 'product', label: __('Product'), render: (r) => r.product, sortValue: (r) => r.product },
-  { key: 'qty', label: __('Quantity'), align: 'right', render: (r) => `${quantity(r.quantity)} ${r.unit.toLowerCase()}`, sortValue: (r) => r.quantity },
-  { key: 'cost', label: __('Unit cost'), align: 'right', render: (r) => money(r.unitCost) },
+  { key: 'qty', label: __('Quantity'), align: 'right', render: (r) => `${quantity(r.quantity)} ${r.unit.toLowerCase()}`, sortValue: (r) => r.quantity, exportFormat: 'quantity' },
+  { key: 'cost', label: __('Unit cost'), align: 'right', render: (r) => money(r.unitCost), exportValue: (r) => r.unitCost },
   { key: 'total', label: __('Total'), align: 'right', render: (r) => money(r.total), sortValue: (r) => r.total, sum: (r) => r.total, formatSum: money },
 ];
 
@@ -49,9 +50,18 @@ export function PurchaseReportPage() {
 
   return (
     <>
-      <ControlPanel breadcrumbs={[{ label: __('Purchase analysis') }]} />
+      <ControlPanel
+        breadcrumbs={[{ label: __('Purchase analysis') }]}
+        exportData={() => ({
+          fileName: `purchase-report_${filter.from || 'start'}_${filter.to || 'today'}`,
+          sheets: [
+            listSheet(__('Purchase lines'), COLUMNS, rows),
+            { name: DIMENSIONS[dimension].label, columns: [{ label: DIMENSIONS[dimension].label }, { label: __('Purchased') }], rows: totals },
+          ],
+        })}
+      />
       <div className="mx-auto max-w-7xl space-y-4 p-4">
-        <div className="card no-print grid gap-3 sm:grid-cols-4">
+        <div className="card grid gap-3 sm:grid-cols-4">
           <div>
             <label className="label" htmlFor="p-from">{__('Received from')}</label>
             <input id="p-from" type="date" className="input" value={filter.from} onChange={(e) => setFilter({ ...filter, from: e.target.value })} />

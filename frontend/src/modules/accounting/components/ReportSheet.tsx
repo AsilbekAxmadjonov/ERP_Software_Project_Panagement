@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { money } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
+import type { ExportCell, ExportSheet } from '../../../ui/export';
 import { PERIOD_PRESETS, type DateRange, type PeriodPreset } from '../periods';
 
 /** Printable page of a financial report: title and period on top, the statement below. */
@@ -75,6 +76,18 @@ export function StatementTable({ sections, results }: { sections: readonly State
       </tfoot>
     </table>
   );
+}
+
+/** The same statement as a worksheet: section headers, indented account lines, totals and results in bold. */
+export function statementSheet(name: string, sections: readonly StatementSection[], results: readonly { label: string; amount: number }[]): ExportSheet {
+  const rows: ExportCell[][] = [];
+  for (const s of sections) {
+    rows.push([{ value: s.title, bold: true }, null, null]);
+    for (const r of s.rows) rows.push([r.code ?? null, { value: r.name, indent: 1 }, r.amount]);
+    rows.push([null, { value: s.total.label, bold: true }, { value: s.total.amount, bold: true }]);
+  }
+  for (const r of results) rows.push([{ value: r.label, bold: true }, null, { value: r.amount, bold: true }]);
+  return { name, columns: [{ label: __('Code'), format: 'text' }, { label: __('Account'), width: 48 }, { label: __('Balance') }], rows };
 }
 
 /** From/to dates with quick period presets; hidden when printing. */

@@ -7,6 +7,7 @@ import { useLoad } from '../../../lib/useLoad';
 import { Badge } from '../../../ui/Badge';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { EmptyState } from '../../../ui/EmptyState';
+import { listSheet } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import { useSearch } from '../../../ui/search';
 import { salesApi } from '../api';
@@ -20,7 +21,7 @@ const COLUMNS: readonly Column<Invoice>[] = [
   { key: 'by', label: __('Salesperson'), render: (i) => i.createdBy, className: 'text-gray-500' },
   { key: 'total', label: __('Total'), align: 'right', render: (i) => money(i.total), sortValue: (i) => i.total, sum: (i) => i.total, formatSum: money },
   { key: 'due', label: __('Amount due'), align: 'right', render: (i) => money(i.outstanding), sortValue: (i) => i.outstanding, sum: (i) => i.outstanding, formatSum: money },
-  { key: 'status', label: __('Payment'), render: (i) => <Badge tone={STATUS[i.status].tone}>{STATUS[i.status].label}</Badge> },
+  { key: 'status', label: __('Payment'), render: (i) => <Badge tone={STATUS[i.status].tone}>{STATUS[i.status].label}</Badge>, exportValue: (i) => STATUS[i.status].label },
 ];
 
 export function InvoicesPage() {
@@ -48,6 +49,7 @@ export function InvoicesPage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('Invoices') }]}
+        exportData={() => ({ fileName: `invoices_${today()}`, sheets: [listSheet(__('Invoices'), COLUMNS, search.results)] })}
         actions={<button className="btn" onClick={create}><Plus className="h-4 w-4" />{__('New')}</button>}
         search={search}
       />

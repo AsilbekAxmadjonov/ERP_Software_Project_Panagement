@@ -92,6 +92,11 @@ public class AccountingModuleConfig {
     }
 
     @Bean
+    GetAccountingSummary getAccountingSummary(AccountRepository accounts, LedgerReadModel ledger, Clock clock) {
+        return new GetAccountingSummary(accounts, ledger, clock);
+    }
+
+    @Bean
     GetAccountLedger getAccountLedger(AccountRepository accounts, LedgerReadModel ledger) {
         return new GetAccountLedger(accounts, ledger);
     }

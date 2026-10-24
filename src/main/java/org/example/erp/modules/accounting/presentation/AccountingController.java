@@ -35,12 +35,14 @@ class AccountingController {
     private final GetProfitAndLoss profitAndLoss;
     private final GetBalanceSheet balanceSheet;
     private final GetCashFlow cashFlow;
+    private final GetAccountingSummary summary;
 
     AccountingController(ListAccounts listAccounts, CreateAccount createAccount, UpdateAccount updateAccount,
                          PostJournalEntry postEntry, ReverseJournalEntry reverseEntry, ListJournalEntries listEntries,
                          GetTrialBalance trialBalance, GetAccountLedger accountLedger, GetPartnerLedger partnerLedger,
                          GetPeriodLock periodLock, ClosePeriod closePeriod, ReopenPeriod reopenPeriod,
-                         GetProfitAndLoss profitAndLoss, GetBalanceSheet balanceSheet, GetCashFlow cashFlow) {
+                         GetProfitAndLoss profitAndLoss, GetBalanceSheet balanceSheet, GetCashFlow cashFlow,
+                         GetAccountingSummary summary) {
         this.listAccounts = listAccounts;
         this.createAccount = createAccount;
         this.updateAccount = updateAccount;
@@ -56,6 +58,7 @@ class AccountingController {
         this.profitAndLoss = profitAndLoss;
         this.balanceSheet = balanceSheet;
         this.cashFlow = cashFlow;
+        this.summary = summary;
     }
 
     record AccountRequest(@NotBlank String code, @NotBlank String name, @NotNull AccountKind type) {}
@@ -129,6 +132,13 @@ class AccountingController {
     CashFlowDTO cashFlow(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return cashFlow.handle(from, to);
+    }
+
+    /** Without dates: the current month to date. */
+    @GetMapping("/reports/summary")
+    AccountingSummaryDTO summary(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return summary.handle(from, to);
     }
 
     @GetMapping("/ledger/account/{code}")

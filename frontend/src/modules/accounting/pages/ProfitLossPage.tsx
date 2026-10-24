@@ -1,11 +1,10 @@
-import { Printer } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { date } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
 import { useLoad } from '../../../lib/useLoad';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { accountingApi } from '../api';
-import { DateRangeFilter, ReportSheet, StatementTable, type StatementSection } from '../components/ReportSheet';
+import { DateRangeFilter, ReportSheet, StatementTable, statementSheet, type StatementSection } from '../components/ReportSheet';
 import { PERIOD_PRESETS } from '../periods';
 import type { ProfitAndLoss } from '../types';
 
@@ -25,7 +24,11 @@ export function ProfitLossPage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('Profit and loss') }]}
-        actions={<button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />{__('Print')}</button>}
+        printTitle={false}
+        exportData={() => ({
+          fileName: `profit-and-loss_${data?.from ?? range.from}_${data?.to ?? range.to}`,
+          sheets: [statementSheet(__('Profit and loss'), sections, data ? [{ label: __('Net profit'), amount: data.netProfit }] : [])],
+        })}
       />
       <div className="space-y-4 p-4">
         <DateRangeFilter value={range} onChange={setRange} />

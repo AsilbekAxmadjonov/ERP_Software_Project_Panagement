@@ -1,17 +1,21 @@
 package org.example.erp.modules.accounting.application.actions;
 
 import org.example.erp.modules.accounting.application.dto.AccountDTO;
+import org.example.erp.modules.accounting.application.events.AccountUpdated;
 import org.example.erp.modules.accounting.domain.Account;
 import org.example.erp.modules.accounting.domain.AccountRepository;
+import org.example.erp.platform.IntegrationEventPublisher;
 import org.example.erp.platform.NotFoundException;
 import org.example.erp.platform.TransactionRunner;
 
 public final class UpdateAccount {
     private final AccountRepository accounts;
+    private final IntegrationEventPublisher events;
     private final TransactionRunner tx;
 
-    public UpdateAccount(AccountRepository accounts, TransactionRunner tx) {
+    public UpdateAccount(AccountRepository accounts, IntegrationEventPublisher events, TransactionRunner tx) {
         this.accounts = accounts;
+        this.events = events;
         this.tx = tx;
     }
 
@@ -23,7 +27,9 @@ public final class UpdateAccount {
             if (active != null) {
                 if (active) account.activate(); else account.deactivate();
             }
-            return AccountingMapper.toDto(accounts.save(account));
+            AccountDTO saved = AccountingMapper.toDto(accounts.save(account));
+            events.publish(new AccountUpdated(saved));
+            return saved;
         });
     }
 }

@@ -6,6 +6,7 @@ import org.example.erp.modules.identity.application.contracts.TokenService;
 import org.example.erp.modules.identity.application.enums.UserRole;
 import org.example.erp.modules.identity.application.commands.CreateUserCommand;
 import org.example.erp.modules.identity.domain.UserAccountRepository;
+import org.example.erp.platform.IntegrationEventPublisher;
 import org.example.erp.platform.TransactionRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +30,8 @@ public class IdentityModuleConfig {
     }
 
     @Bean
-    LoginUser loginUser(UserAccountRepository users, PasswordHasher hasher, TokenService tokens) {
-        return new LoginUser(users, hasher, tokens);
+    LoginUser loginUser(UserAccountRepository users, PasswordHasher hasher, TokenService tokens, IntegrationEventPublisher events) {
+        return new LoginUser(users, hasher, tokens, events);
     }
 
     @Bean
@@ -49,13 +50,13 @@ public class IdentityModuleConfig {
     }
 
     @Bean
-    CreateUser createUser(UserAccountRepository users, PasswordHasher hasher, TransactionRunner tx) {
-        return new CreateUser(users, hasher, tx);
+    CreateUser createUser(UserAccountRepository users, PasswordHasher hasher, IntegrationEventPublisher events, TransactionRunner tx) {
+        return new CreateUser(users, hasher, events, tx);
     }
 
     @Bean
-    UpdateUser updateUser(UserAccountRepository users, PasswordHasher hasher, TransactionRunner tx) {
-        return new UpdateUser(users, hasher, tx);
+    UpdateUser updateUser(UserAccountRepository users, PasswordHasher hasher, IntegrationEventPublisher events, TransactionRunner tx) {
+        return new UpdateUser(users, hasher, events, tx);
     }
 
     /** First CEO account for an empty database; credentials come from the environment, never from code. */

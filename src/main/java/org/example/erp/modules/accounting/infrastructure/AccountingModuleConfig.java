@@ -9,6 +9,7 @@ import org.example.erp.modules.accounting.domain.AccountType;
 import org.example.erp.modules.accounting.domain.JournalEntryRepository;
 import org.example.erp.modules.accounting.domain.PeriodLockRepository;
 import org.example.erp.platform.CurrentActor;
+import org.example.erp.platform.IntegrationEventPublisher;
 import org.example.erp.platform.TransactionRunner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -25,25 +26,27 @@ public class AccountingModuleConfig {
     }
 
     @Bean
-    CreateAccount createAccount(AccountRepository accounts, TransactionRunner tx) {
-        return new CreateAccount(accounts, tx);
+    CreateAccount createAccount(AccountRepository accounts, IntegrationEventPublisher events, TransactionRunner tx) {
+        return new CreateAccount(accounts, events, tx);
     }
 
     @Bean
-    UpdateAccount updateAccount(AccountRepository accounts, TransactionRunner tx) {
-        return new UpdateAccount(accounts, tx);
+    UpdateAccount updateAccount(AccountRepository accounts, IntegrationEventPublisher events, TransactionRunner tx) {
+        return new UpdateAccount(accounts, events, tx);
     }
 
     @Bean
     public PostJournalEntry postJournalEntry(AccountRepository accounts, JournalEntryRepository entries,
-                                             PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor) {
-        return new PostJournalEntry(accounts, entries, periods, tx, actor);
+                                             PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor,
+                                             IntegrationEventPublisher events) {
+        return new PostJournalEntry(accounts, entries, periods, tx, actor, events);
     }
 
     @Bean
     ReverseJournalEntry reverseJournalEntry(AccountRepository accounts, JournalEntryRepository entries,
-                                            PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock) {
-        return new ReverseJournalEntry(accounts, entries, periods, tx, actor, clock);
+                                            PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock,
+                                            IntegrationEventPublisher events) {
+        return new ReverseJournalEntry(accounts, entries, periods, tx, actor, clock, events);
     }
 
     @Bean
@@ -52,13 +55,15 @@ public class AccountingModuleConfig {
     }
 
     @Bean
-    public ClosePeriod closePeriod(PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock) {
-        return new ClosePeriod(periods, tx, actor, clock);
+    public ClosePeriod closePeriod(PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock,
+                                   IntegrationEventPublisher events) {
+        return new ClosePeriod(periods, tx, actor, clock, events);
     }
 
     @Bean
-    public ReopenPeriod reopenPeriod(PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock) {
-        return new ReopenPeriod(periods, tx, actor, clock);
+    public ReopenPeriod reopenPeriod(PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock,
+                                     IntegrationEventPublisher events) {
+        return new ReopenPeriod(periods, tx, actor, clock, events);
     }
 
     @Bean

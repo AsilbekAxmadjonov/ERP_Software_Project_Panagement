@@ -10,6 +10,7 @@ import { LedgerPage } from '../modules/accounting/pages/LedgerPage';
 import { LockDatesPage } from '../modules/accounting/pages/LockDatesPage';
 import { PartnerLedgerPage } from '../modules/accounting/pages/PartnerLedgerPage';
 import { TrialBalancePage } from '../modules/accounting/pages/TrialBalancePage';
+import { AuditLogPage } from '../modules/audit/pages/AuditLogPage';
 import { UsersPage } from '../modules/identity/pages/UsersPage';
 import { UserRole } from '../modules/identity/types';
 import { ProductFormPage } from '../modules/inventory/pages/ProductFormPage';
@@ -195,11 +196,17 @@ export const APPS: readonly AppDefinition[] = [
   {
     key: 'settings',
     label: __('Settings'),
-    description: __('Users and access rights'),
+    description: __('Users, access rights and audit log'),
     icon: Settings,
     color: 'bg-gradient-to-br from-slate-500 to-slate-700',
     roles: [UserRole.CEO],
-    menus: [{ label: __('Users'), name: 'users.index' }],
-    routes: [{ name: 'users.index', element: <UsersPage /> }],
+    menus: [
+      { label: __('Users'), name: 'users.index' },
+      { label: __('Audit log'), name: 'audit.index' },
+    ],
+    routes: [
+      { name: 'users.index', element: <UsersPage /> },
+      { name: 'audit.index', element: <AuditLogPage /> },
+    ],
   },
 ];

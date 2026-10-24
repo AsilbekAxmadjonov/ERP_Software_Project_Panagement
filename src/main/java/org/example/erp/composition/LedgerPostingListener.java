@@ -6,6 +6,7 @@ import org.example.erp.modules.accounting.application.commands.PostEntryCommand.
 import org.example.erp.modules.accounting.application.enums.EntryKind;
 import org.example.erp.modules.accounting.application.enums.LedgerRole;
 import org.example.erp.modules.inventory.application.events.StockAdjusted;
+import org.example.erp.modules.sales.application.events.CreditNoteIssued;
 import org.example.erp.modules.sales.application.events.InvoiceIssued;
 import org.example.erp.modules.sales.application.events.PaymentReceived;
 import org.springframework.context.event.EventListener;
@@ -40,6 +41,23 @@ class LedgerPostingListener {
             lines.add(Line.credit(LedgerRole.INVENTORY.code(), e.cost(), null, e.invoiceNumber()));
         }
         postEntry.handle(new PostEntryCommand(e.invoiceDate(), e.invoiceNumber(), "Sale to " + e.customerName(), lines), EntryKind.SALE);
+    }
+
+    /** Sales return: reverses the revenue and receivable, and puts the goods back from cost of sales into inventory. */
+    @EventListener
+    void on(CreditNoteIssued e) {
+        List<Line> lines = new ArrayList<>();
+        if (e.total().signum() > 0) {
+            lines.add(Line.debit(LedgerRole.SALES_REVENUE.code(), e.total(), null, e.creditNoteNumber()));
+            lines.add(Line.credit(LedgerRole.RECEIVABLE.code(), e.total(), e.customerId(), e.creditNoteNumber()));
+        }
+        if (e.cost().signum() > 0) {
+            lines.add(Line.debit(LedgerRole.INVENTORY.code(), e.cost(), null, e.creditNoteNumber()));
+            lines.add(Line.credit(LedgerRole.COST_OF_GOODS_SOLD.code(), e.cost(), null, e.creditNoteNumber()));
+        }
+        if (lines.isEmpty()) return;
+        postEntry.handle(new PostEntryCommand(e.date(), e.creditNoteNumber(),
+                "Return from " + e.customerName() + " on " + e.invoiceNumber(), lines), EntryKind.SALES_RETURN);
     }
 
     @EventListener

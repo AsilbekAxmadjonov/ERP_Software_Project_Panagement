@@ -7,6 +7,7 @@ import org.example.erp.modules.accounting.domain.Account;
 import org.example.erp.modules.accounting.domain.AccountRepository;
 import org.example.erp.modules.accounting.domain.AccountType;
 import org.example.erp.modules.accounting.domain.JournalEntryRepository;
+import org.example.erp.modules.accounting.domain.PeriodLockRepository;
 import org.example.erp.platform.CurrentActor;
 import org.example.erp.platform.TransactionRunner;
 import org.springframework.boot.CommandLineRunner;
@@ -34,14 +35,30 @@ public class AccountingModuleConfig {
     }
 
     @Bean
-    public PostJournalEntry postJournalEntry(AccountRepository accounts, JournalEntryRepository entries, TransactionRunner tx, CurrentActor actor) {
-        return new PostJournalEntry(accounts, entries, tx, actor);
+    public PostJournalEntry postJournalEntry(AccountRepository accounts, JournalEntryRepository entries,
+                                             PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor) {
+        return new PostJournalEntry(accounts, entries, periods, tx, actor);
     }
 
     @Bean
-    ReverseJournalEntry reverseJournalEntry(AccountRepository accounts, JournalEntryRepository entries, TransactionRunner tx,
-                                            CurrentActor actor, Clock clock) {
-        return new ReverseJournalEntry(accounts, entries, tx, actor, clock);
+    ReverseJournalEntry reverseJournalEntry(AccountRepository accounts, JournalEntryRepository entries,
+                                            PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock) {
+        return new ReverseJournalEntry(accounts, entries, periods, tx, actor, clock);
+    }
+
+    @Bean
+    GetPeriodLock getPeriodLock(PeriodLockRepository periods) {
+        return new GetPeriodLock(periods);
+    }
+
+    @Bean
+    public ClosePeriod closePeriod(PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock) {
+        return new ClosePeriod(periods, tx, actor, clock);
+    }
+
+    @Bean
+    public ReopenPeriod reopenPeriod(PeriodLockRepository periods, TransactionRunner tx, CurrentActor actor, Clock clock) {
+        return new ReopenPeriod(periods, tx, actor, clock);
     }
 
     @Bean

@@ -3,10 +3,12 @@ package org.example.erp.modules.accounting.application.actions;
 import org.example.erp.modules.accounting.application.dto.AccountDTO;
 import org.example.erp.modules.accounting.application.dto.JournalEntryDTO;
 import org.example.erp.modules.accounting.application.dto.JournalLineDTO;
+import org.example.erp.modules.accounting.application.dto.PeriodLockDTO;
 import org.example.erp.modules.accounting.application.enums.AccountKind;
 import org.example.erp.modules.accounting.application.enums.EntryKind;
 import org.example.erp.modules.accounting.domain.Account;
 import org.example.erp.modules.accounting.domain.JournalEntry;
+import org.example.erp.modules.accounting.domain.PeriodLock;
 
 import java.util.Map;
 
@@ -15,6 +17,10 @@ final class AccountingMapper {
 
     static AccountDTO toDto(Account a) {
         return new AccountDTO(a.getId(), a.getCode(), a.getName(), AccountKind.valueOf(a.getType().name()), a.isActive());
+    }
+
+    static PeriodLockDTO toDto(PeriodLock p) {
+        return new PeriodLockDTO(p.getLockDate(), p.getChangedBy(), p.getChangedAt());
     }
 
     static JournalEntryDTO toDto(JournalEntry e, Map<String, String> accountNames) {

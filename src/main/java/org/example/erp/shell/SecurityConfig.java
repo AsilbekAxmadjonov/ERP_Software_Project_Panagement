@@ -29,6 +29,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/users/**").hasRole("CEO")
+                .requestMatchers(HttpMethod.POST, "/api/accounting/periods/reopen").hasRole("CEO")
                 .requestMatchers(HttpMethod.GET, "/api/accounting/**").hasAnyRole("CEO", "MANAGER", "ACCOUNTANT")
                 .requestMatchers("/api/accounting/**").hasAnyRole("CEO", "ACCOUNTANT")
                 .requestMatchers(HttpMethod.POST, "/api/inventory/adjustments").hasAnyRole("CEO", "ACCOUNTANT")

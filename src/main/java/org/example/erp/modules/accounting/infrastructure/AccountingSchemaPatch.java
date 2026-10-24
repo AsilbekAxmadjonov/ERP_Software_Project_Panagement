@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 
 /**
- * Lets databases created before the SALES_RETURN, PURCHASE, SUPPLIER_PAYMENT, EXPENSE and OTHER_INCOME entry origins
+ * Lets databases created before the SALES_RETURN, PURCHASE, SUPPLIER_PAYMENT, EXPENSE, OTHER_INCOME and PAYROLL entry origins
  * existed store them.
  * Depends on the EntityManagerFactory so it runs after Hibernate has updated the schema.
  */

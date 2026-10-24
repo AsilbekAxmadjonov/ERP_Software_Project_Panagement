@@ -117,6 +117,29 @@ class PurchasingFlowIntegrationTest {
     }
 
     @Test
+    void purchaseReportListsReceivedItemsOfTheRequestedSupplier() throws Exception {
+        var supplier = createPartner.handle(new SavePartnerCommand("Sugar Co", PartnerKind.SUPPLIER, null, null, null, null, null, true));
+        var other = createPartner.handle(new SavePartnerCommand("Salt Co", PartnerKind.SUPPLIER, null, null, null, null, null, true));
+        var sugar = createProduct.handle(new SaveProductCommand("PR-SUG", "Sugar", UnitOfMeasure.KG, n("9000"), true, null));
+        var items = List.of(new CreatePurchaseOrderCommand.Item(sugar.id(), n("5"), n("8000")));
+        PurchaseOrderDTO received = createOrder.handle(new CreatePurchaseOrderCommand(supplier.id(), null, items));
+        confirmOrder.handle(received.id());
+        receiveOrder.handle(received.id(), null);
+        createOrder.handle(new CreatePurchaseOrderCommand(supplier.id(), null, items));
+        PurchaseOrderDTO otherOrder = createOrder.handle(new CreatePurchaseOrderCommand(other.id(), null, items));
+        confirmOrder.handle(otherOrder.id());
+        receiveOrder.handle(otherOrder.id(), null);
+
+        mvc.perform(get("/api/purchase/report").param("supplierId", String.valueOf(supplier.id())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].order").value(received.number()))
+                .andExpect(jsonPath("$[0].supplier").value("Sugar Co"))
+                .andExpect(jsonPath("$[0].product").value("Sugar"))
+                .andExpect(jsonPath("$[0].total").value(40000.0));
+    }
+
+    @Test
     void customersCannotBeOrderedFromAndCancelledOrdersCannotBeReceived() {
         var customer = createPartner.handle(new SavePartnerCommand("Retail", PartnerKind.CUSTOMER, null, null, null, null, null, true));
         var supplier = createPartner.handle(new SavePartnerCommand("Oil Co", PartnerKind.BOTH, null, null, null, null, null, true));

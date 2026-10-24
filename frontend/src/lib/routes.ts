@@ -39,6 +39,7 @@ const paths = {
   'employees.index': '/employees',
   'employees.new': '/employees/new',
   'employees.show': '/employees/:id',
+  'purchase.report': '/purchase/report',
 } as const;
 
 export type RouteName = keyof typeof paths;

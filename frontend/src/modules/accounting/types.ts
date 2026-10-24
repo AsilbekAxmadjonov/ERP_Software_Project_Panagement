@@ -13,6 +13,9 @@ export const EntryKind = {
   PAYMENT: 'PAYMENT',
   STOCK_ADJUSTMENT: 'STOCK_ADJUSTMENT',
   REVERSAL: 'REVERSAL',
+  SALES_RETURN: 'SALES_RETURN',
+  PURCHASE: 'PURCHASE',
+  SUPPLIER_PAYMENT: 'SUPPLIER_PAYMENT',
 } as const;
 export type EntryKind = (typeof EntryKind)[keyof typeof EntryKind];
 
@@ -67,4 +70,20 @@ export interface EntryInput {
   reference: string;
   description: string;
   lines: { accountCode: string; debit: number; credit: number; memo: string }[];
+}
+
+export interface PeriodLock {
+  /** Entries dated on or before this date are locked; null while no period is closed. */
+  lockDate: string | null;
+  changedBy: string | null;
+  changedAt: string | null;
+}
+
+/** Minimal view of a partner, fetched over HTTP so accounting has no code dependency on the partners module. */
+export interface PartnerOption {
+  id: number;
+  name: string;
+  customer: boolean;
+  supplier: boolean;
+  active: boolean;
 }

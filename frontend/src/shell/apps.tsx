@@ -1,4 +1,4 @@
-import { BookOpenCheck, Boxes, ContactRound, Settings, ShoppingCart, TrendingUp, type LucideIcon } from 'lucide-react';
+import { BookOpenCheck, Boxes, ContactRound, Settings, ShoppingCart, TrendingUp, Wallet, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { __ } from '../lib/i18n';
 import type { RouteName } from '../lib/routes';
@@ -11,6 +11,10 @@ import { LockDatesPage } from '../modules/accounting/pages/LockDatesPage';
 import { PartnerLedgerPage } from '../modules/accounting/pages/PartnerLedgerPage';
 import { TrialBalancePage } from '../modules/accounting/pages/TrialBalancePage';
 import { AuditLogPage } from '../modules/audit/pages/AuditLogPage';
+import { CashEntryFormPage } from '../modules/expenses/pages/CashEntryFormPage';
+import { ExpensesPage, OtherIncomePage } from '../modules/expenses/pages/CashEntriesPage';
+import { CategoriesPage } from '../modules/expenses/pages/CategoriesPage';
+import { ExpenseReportPage } from '../modules/expenses/pages/ExpenseReportPage';
 import { UsersPage } from '../modules/identity/pages/UsersPage';
 import { UserRole } from '../modules/identity/types';
 import { ProductFormPage } from '../modules/inventory/pages/ProductFormPage';
@@ -121,6 +125,27 @@ export const APPS: readonly AppDefinition[] = [
       { name: 'purchase.orders.show', element: <PurchaseOrderFormPage /> },
       { name: 'purchase.payments', element: <SupplierPaymentsPage /> },
       { name: 'purchase.vendors', element: <VendorsPage /> },
+    ],
+  },
+  {
+    key: 'expenses',
+    label: __('Expenses'),
+    description: __('Running costs, other income and their categories'),
+    icon: Wallet,
+    color: 'bg-gradient-to-br from-lime-500 to-green-700',
+    roles: EVERYONE,
+    menus: [
+      { label: __('Expenses'), name: 'expenses.expenses' },
+      { label: __('Other income'), name: 'expenses.income' },
+      { label: __('Reporting'), children: [{ label: __('By category'), name: 'expenses.report' }] },
+      { label: __('Configuration'), children: [{ label: __('Categories'), name: 'expenses.categories' }] },
+    ],
+    routes: [
+      { name: 'expenses.expenses', element: <ExpensesPage /> },
+      { name: 'expenses.income', element: <OtherIncomePage /> },
+      { name: 'expenses.entries.show', element: <CashEntryFormPage /> },
+      { name: 'expenses.categories', element: <CategoriesPage /> },
+      { name: 'expenses.report', element: <ExpenseReportPage /> },
     ],
   },
   {

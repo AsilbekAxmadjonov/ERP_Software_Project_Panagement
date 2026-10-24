@@ -19,4 +19,6 @@ export const ORIGIN: Record<EntryKind, { label: string; tone: Tone }> = {
   [EntryKind.SALES_RETURN]: { label: __('Credit note'), tone: 'yellow' },
   [EntryKind.PURCHASE]: { label: __('Purchase'), tone: 'purple' },
   [EntryKind.SUPPLIER_PAYMENT]: { label: __('Vendor payment'), tone: 'blue' },
+  [EntryKind.EXPENSE]: { label: __('Expense'), tone: 'red' },
+  [EntryKind.OTHER_INCOME]: { label: __('Other income'), tone: 'green' },
 };

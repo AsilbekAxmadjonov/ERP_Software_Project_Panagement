@@ -11,7 +11,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 @AnalyzeClasses(packages = "org.example.erp", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
-    private static final List<String> MODULES = List.of("identity", "partners", "accounting", "inventory", "sales", "purchasing", "audit", "expenses");
+    private static final List<String> MODULES = List.of("identity", "partners", "accounting", "inventory", "sales", "purchasing", "audit", "expenses", "employees");
 
     private static String pkg(String module, String layer) {
         return "org.example.erp.modules." + module + "." + layer + "..";

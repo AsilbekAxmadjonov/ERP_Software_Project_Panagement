@@ -1,103 +1,127 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { ApiError } from '../../../lib/http';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { __ } from '../../../lib/i18n';
+import { useLoad } from '../../../lib/useLoad';
+import { Badge } from '../../../ui/Badge';
+import { ControlPanel } from '../../../ui/ControlPanel';
+import { Dialog } from '../../../ui/Dialog';
+import { Avatar } from '../../../ui/Kanban';
+import { ListView, type Column } from '../../../ui/ListView';
+import { useSearch } from '../../../ui/search';
+import { useToast } from '../../../ui/Toast';
 import { identityApi } from '../api';
+import { ROLE_LABEL } from '../labels';
+import { useSession } from '../session';
 import { UserRole, type User } from '../types';
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  [UserRole.CEO]: __('CEO'),
-  [UserRole.MANAGER]: __('Manager'),
-  [UserRole.ACCOUNTANT]: __('Accountant'),
-};
 
 const EMPTY_FORM = { username: '', password: '', fullName: '', role: UserRole.MANAGER as UserRole };
 
 export function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const toast = useToast();
+  const { user: me } = useSession();
+  const { data: users, loading, reload } = useLoad(identityApi.listUsers, []);
+  const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(() => identityApi.listUsers().then(setUsers).catch((e: ApiError) => setError(e.message)), []);
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const search = useSearch(users, {
+    text: (u) => [u.username, u.fullName],
+    filters: [
+      ...Object.values(UserRole).map((r) => ({ key: r, group: 'role', label: ROLE_LABEL[r], test: (u: User) => u.role === r })),
+      { key: 'active', group: 'state', label: __('Active'), test: (u) => u.active },
+      { key: 'disabled', group: 'state', label: __('Disabled'), test: (u) => !u.active },
+    ],
+    groupBys: [{ key: 'role', label: __('Role'), value: (u) => ROLE_LABEL[u.role] }],
+  });
 
-  const create = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    try {
-      await identityApi.createUser(form);
+  const update = (u: User, input: Parameters<typeof identityApi.updateUser>[1], message: string) =>
+    void toast.run(() => identityApi.updateUser(u.id, input).then(reload), message);
+
+  const columns: readonly Column<User>[] = [
+    {
+      key: 'name',
+      label: __('Name'),
+      render: (u) => <span className="inline-flex items-center gap-2 font-medium"><Avatar name={u.fullName ?? u.username} size="sm" />{u.fullName ?? u.username}</span>,
+      sortValue: (u) => u.fullName ?? u.username,
+    },
+    { key: 'login', label: __('Login'), render: (u) => u.username, sortValue: (u) => u.username, className: 'text-gray-600' },
+    {
+      key: 'role',
+      label: __('Role'),
+      render: (u) => (
+        <select
+          aria-label={__('Role of :user').replace(':user', u.username)}
+          className="o-input w-36"
+          value={u.role}
+          disabled={u.id === me?.id}
+          onChange={(e) => update(u, { role: e.target.value as UserRole }, __('Role updated.'))}
+        >
+          {Object.values(UserRole).map((r) => (<option key={r} value={r}>{ROLE_LABEL[r]}</option>))}
+        </select>
+      ),
+      sortValue: (u) => u.role,
+    },
+    { key: 'state', label: __('Status'), render: (u) => (u.active ? <Badge tone="green">{__('Active')}</Badge> : <Badge tone="gray">{__('Disabled')}</Badge>) },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right',
+      render: (u) =>
+        u.id === me?.id ? (
+          <span className="text-xs text-gray-400">{__('You')}</span>
+        ) : (
+          <button className="btn-link" onClick={() => update(u, { active: !u.active }, u.active ? __('User disabled.') : __('User enabled.'))}>
+            {u.active ? __('Disable') : __('Enable')}
+          </button>
+        ),
+    },
+  ];
+
+  const create = async () => {
+    const ok = await toast.run(() => identityApi.createUser(form), __('User created.'));
+    if (ok) {
+      setCreating(false);
       setForm(EMPTY_FORM);
-      await load();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : __('Something went wrong.'));
+      await reload();
     }
   };
 
-  const toggleActive = async (user: User) => {
-    await identityApi.updateUser(user.id, { active: !user.active });
-    await load();
-  };
-
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{__('Users')}</h1>
-
-      <form onSubmit={create} className="card grid gap-3 sm:grid-cols-5">
-        <div>
-          <label className="label" htmlFor="u-username">{__('Username')}</label>
-          <input id="u-username" className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="u-name">{__('Full name')}</label>
-          <input id="u-name" className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-        </div>
-        <div>
-          <label className="label" htmlFor="u-password">{__('Password (min 8)')}</label>
-          <input id="u-password" type="password" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={8} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="u-role">{__('Role')}</label>
-          <select id="u-role" className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}>
-            {Object.values(UserRole).map((role) => (
-              <option key={role} value={role}>{ROLE_LABEL[role]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-end">
-          <button className="btn w-full">{__('Add user')}</button>
-        </div>
-        {error !== null && <p role="alert" className="text-sm text-red-600 sm:col-span-5">{error}</p>}
-      </form>
-
-      <div className="card overflow-x-auto p-0">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead>
-            <tr>
-              <th className="th">{__('Username')}</th>
-              <th className="th">{__('Full name')}</th>
-              <th className="th">{__('Role')}</th>
-              <th className="th">{__('Status')}</th>
-              <th className="th" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td className="td font-medium">{user.username}</td>
-                <td className="td">{user.fullName}</td>
-                <td className="td">{ROLE_LABEL[user.role]}</td>
-                <td className="td">{user.active ? __('Active') : __('Disabled')}</td>
-                <td className="td text-right">
-                  <button className="btn-secondary" onClick={() => void toggleActive(user)}>
-                    {user.active ? __('Disable') : __('Enable')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <>
+      <ControlPanel
+        breadcrumbs={[{ label: __('Users') }]}
+        actions={<button className="btn" onClick={() => setCreating(true)}><Plus className="h-4 w-4" />{__('New')}</button>}
+        search={search}
+      />
+      <ListView rows={search.results} columns={columns} rowKey={(u) => u.id} loading={loading} groupBy={search.groupBy} rowClassName={(u) => (u.active ? '' : 'text-gray-400')} />
+      {creating && (
+        <Dialog title={__('New user')} onClose={() => setCreating(false)} onSubmit={create} submitLabel={__('Create user')}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="u-name">{__('Full name')}</label>
+              <input id="u-name" className="input" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} autoFocus />
+            </div>
+            <div>
+              <label className="label" htmlFor="u-username">{__('Login')}</label>
+              <input id="u-username" className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} autoComplete="off" required />
+            </div>
+            <div>
+              <label className="label" htmlFor="u-password">{__('Password (min 8)')}</label>
+              <input id="u-password" type="password" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={8} autoComplete="new-password" required />
+            </div>
+            <fieldset className="sm:col-span-2">
+              <legend className="label">{__('Access rights')}</legend>
+              <div className="flex flex-wrap gap-4">
+                {Object.values(UserRole).map((r) => (
+                  <label key={r} className="flex items-center gap-1.5">
+                    <input type="radio" name="u-role" value={r} checked={form.role === r} onChange={() => setForm({ ...form, role: r })} className="accent-brand" />
+                    {ROLE_LABEL[r]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+        </Dialog>
+      )}
+    </>
   );
 }

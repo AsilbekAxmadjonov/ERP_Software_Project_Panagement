@@ -22,8 +22,11 @@ class InvoiceRecord {
     private LocalDate invoiceDate;
     @Column(precision = 19, scale = 2)
     private BigDecimal paid;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal credited;
     private String createdBy;
 
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OrderBy("id")
     private List<InvoiceLineRecord> lines = new ArrayList<>();
 }

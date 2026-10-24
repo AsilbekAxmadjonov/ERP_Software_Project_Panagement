@@ -20,7 +20,8 @@ public final class CreateProduct {
         String code = c.code().trim();
         return tx.run(() -> {
             if (products.existsByCode(code)) throw new BusinessRuleException("Product code already exists");
-            Product product = Product.create(code, c.name().trim(), InventoryMapper.toDomain(c.unit()), c.salePrice());
+            Product product = Product.create(code, c.name().trim(), InventoryMapper.toDomain(c.unit()), c.salePrice(),
+                    InventoryMapper.quantity(c.reorderLevel()));
             return InventoryMapper.toDto(products.save(product));
         });
     }

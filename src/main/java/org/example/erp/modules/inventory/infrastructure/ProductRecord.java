@@ -26,4 +26,6 @@ class ProductRecord {
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal averageCost;
     private boolean active;
+    @Column(precision = 19, scale = 3)
+    private BigDecimal reorderLevel;
 }

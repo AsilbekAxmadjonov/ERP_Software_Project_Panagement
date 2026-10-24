@@ -40,11 +40,12 @@ class JpaProductRepository implements ProductRepository {
         r.setQuantity(p.getQuantity());
         r.setAverageCost(p.getAverageCost());
         r.setActive(p.isActive());
+        r.setReorderLevel(p.getReorderLevel());
         return toDomain(jpa.save(r));
     }
 
     private Product toDomain(ProductRecord r) {
         return Product.restore(r.getId(), r.getCode(), r.getName(), r.getUnit(), r.getSalePrice(), r.getQuantity(),
-                r.getAverageCost(), r.isActive());
+                r.getAverageCost(), r.isActive(), r.getReorderLevel());
     }
 }

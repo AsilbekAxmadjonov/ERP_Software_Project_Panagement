@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ProductTest {
     private static Product flour() {
-        return Product.create("P-1", "Flour", Unit.KG, new BigDecimal("2200"));
+        return Product.create("P-1", "Flour", Unit.KG, new BigDecimal("2200"), null);
     }
 
     private static BigDecimal n(String v) {

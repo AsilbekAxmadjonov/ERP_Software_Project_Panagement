@@ -19,7 +19,8 @@ public final class UpdateProduct {
     public ProductDTO handle(long id, SaveProductCommand c) {
         return tx.run(() -> {
             Product product = products.findById(id).orElseThrow(() -> new NotFoundException("Product not found"));
-            product.update(c.name().trim(), InventoryMapper.toDomain(c.unit()), c.salePrice(), c.active());
+            product.update(c.name().trim(), InventoryMapper.toDomain(c.unit()), c.salePrice(), c.active(),
+                    InventoryMapper.quantity(c.reorderLevel()));
             return InventoryMapper.toDto(products.save(product));
         });
     }

@@ -22,20 +22,25 @@ class InventoryController {
     private final UpdateProduct updateProduct;
     private final AdjustStock adjustStock;
     private final ListStockMovements listMovements;
+    private final FindProduct findProduct;
+    private final ListLowStockProducts listLowStock;
 
     InventoryController(ListProducts listProducts, CreateProduct createProduct, UpdateProduct updateProduct,
-                        AdjustStock adjustStock, ListStockMovements listMovements) {
+                        AdjustStock adjustStock, ListStockMovements listMovements, FindProduct findProduct,
+                        ListLowStockProducts listLowStock) {
         this.listProducts = listProducts;
         this.createProduct = createProduct;
         this.updateProduct = updateProduct;
         this.adjustStock = adjustStock;
         this.listMovements = listMovements;
+        this.findProduct = findProduct;
+        this.listLowStock = listLowStock;
     }
 
     record ProductRequest(@NotBlank String code, @NotBlank String name, @NotNull UnitOfMeasure unit,
-                          @NotNull BigDecimal salePrice, Boolean active) {
+                          @NotNull BigDecimal salePrice, Boolean active, BigDecimal reorderLevel) {
         SaveProductCommand toCommand() {
-            return new SaveProductCommand(code, name, unit, salePrice, active == null || active);
+            return new SaveProductCommand(code, name, unit, salePrice, active == null || active, reorderLevel);
         }
     }
 
@@ -44,6 +49,16 @@ class InventoryController {
     @GetMapping("/products")
     List<ProductDTO> products() {
         return listProducts.handle();
+    }
+
+    @GetMapping("/products/low-stock")
+    List<ProductDTO> lowStock() {
+        return listLowStock.handle();
+    }
+
+    @GetMapping("/products/{id}")
+    ProductDTO product(@PathVariable long id) {
+        return findProduct.handle(id);
     }
 
     @PostMapping("/products")

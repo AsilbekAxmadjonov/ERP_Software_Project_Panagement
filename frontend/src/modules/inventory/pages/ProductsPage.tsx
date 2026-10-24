@@ -1,159 +1,103 @@
-import { useState, type FormEvent } from 'react';
-import { ApiError } from '../../../lib/http';
+import { Package, Plus, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { money, quantity } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
+import { route } from '../../../lib/routes';
 import { useLoad } from '../../../lib/useLoad';
+import { Badge } from '../../../ui/Badge';
+import { ControlPanel, type ViewMode } from '../../../ui/ControlPanel';
+import { EmptyState } from '../../../ui/EmptyState';
+import { KanbanGrid } from '../../../ui/Kanban';
+import { ListView, type Column } from '../../../ui/ListView';
+import { useSearch } from '../../../ui/search';
 import { inventoryApi } from '../api';
-import { MovementKind, UnitOfMeasure } from '../types';
+import { UNIT_LABEL } from '../labels';
+import type { Product } from '../types';
 
-const UNIT_LABEL: Record<UnitOfMeasure, string> = {
-  [UnitOfMeasure.KG]: __('kg'),
-  [UnitOfMeasure.PCS]: __('pcs'),
-};
+const onHandClass = (p: Product) => (p.quantity <= 0 ? 'text-red-600' : p.lowStock ? 'text-amber-600' : '');
 
-const MOVEMENT_LABEL: Record<MovementKind, string> = {
-  [MovementKind.ADJUSTMENT]: __('Adjustment'),
-  [MovementKind.SALE]: __('Sale'),
-};
+const COLUMNS: readonly Column<Product>[] = [
+  { key: 'code', label: __('Reference'), render: (p) => <span className="font-mono">{p.code}</span>, sortValue: (p) => p.code },
+  { key: 'name', label: __('Product'), render: (p) => <span className="font-medium">{p.name}</span>, sortValue: (p) => p.name },
+  { key: 'unit', label: __('Unit'), render: (p) => UNIT_LABEL[p.unit] },
+  { key: 'price', label: __('Sales price'), align: 'right', render: (p) => money(p.salePrice), sortValue: (p) => p.salePrice },
+  { key: 'cost', label: __('Avg cost'), align: 'right', render: (p) => money(p.averageCost), sortValue: (p) => p.averageCost },
+  { key: 'qty', label: __('On hand'), align: 'right', render: (p) => <span className={onHandClass(p)}>{quantity(p.quantity)}</span>, sortValue: (p) => p.quantity },
+  { key: 'min', label: __('Min. qty'), align: 'right', render: (p) => (p.reorderLevel === null ? '' : quantity(p.reorderLevel)), className: 'text-gray-500' },
+  { key: 'value', label: __('Stock value'), align: 'right', render: (p) => money(p.stockValue), sortValue: (p) => p.stockValue, sum: (p) => p.stockValue, formatSum: money },
+  { key: 'alert', label: '', render: (p) => (p.lowStock ? <Badge tone="yellow">{__('Low stock')}</Badge> : null) },
+];
 
 export function ProductsPage() {
-  const { data: products, error: loadError, reload } = useLoad(inventoryApi.products, []);
-  const { data: movements, reload: reloadMovements } = useLoad(inventoryApi.movements, []);
-  const [product, setProduct] = useState({ code: '', name: '', unit: UnitOfMeasure.KG as UnitOfMeasure, salePrice: '' });
-  const [adjust, setAdjust] = useState({ productId: '', quantity: '', unitCost: '', reason: '' });
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<ViewMode>('kanban');
+  const { data: products, loading } = useLoad(inventoryApi.products, []);
+  const search = useSearch(products, {
+    text: (p) => [p.code, p.name],
+    defaultFilters: ['active'],
+    filters: [
+      { key: 'low', group: 'stock', label: __('Low stock'), test: (p) => p.lowStock },
+      { key: 'out', group: 'stock', label: __('Out of stock'), test: (p) => p.quantity <= 0 },
+      { key: 'active', group: 'state', label: __('Active'), test: (p) => p.active },
+      { key: 'archived', group: 'state', label: __('Archived'), test: (p) => !p.active },
+    ],
+    groupBys: [{ key: 'unit', label: __('Unit of measure'), value: (p) => UNIT_LABEL[p.unit] }],
+  });
 
-  const refresh = async () => {
-    await Promise.all([reload(), reloadMovements()]);
-  };
-
-  const run = async (action: () => Promise<unknown>) => {
-    setError(null);
-    try {
-      await action();
-      await refresh();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : __('Something went wrong.'));
-    }
-  };
-
-  const createProduct = (event: FormEvent) => {
-    event.preventDefault();
-    void run(async () => {
-      await inventoryApi.createProduct({ ...product, salePrice: Number(product.salePrice) });
-      setProduct({ code: '', name: '', unit: UnitOfMeasure.KG, salePrice: '' });
-    });
-  };
-
-  const adjustStock = (event: FormEvent) => {
-    event.preventDefault();
-    void run(async () => {
-      await inventoryApi.adjust({
-        productId: Number(adjust.productId),
-        quantity: Number(adjust.quantity),
-        unitCost: adjust.unitCost === '' ? undefined : Number(adjust.unitCost),
-        reason: adjust.reason,
-      });
-      setAdjust({ productId: '', quantity: '', unitCost: '', reason: '' });
-    });
-  };
+  const create = () => navigate(route('inventory.products.new'));
+  const open = (p: Product) => navigate(route('inventory.products.show', { id: p.id }));
+  const lowCount = products.filter((p) => p.active && p.lowStock).length;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{__('Products and stock')}</h1>
-      {(error ?? loadError) !== null && <p role="alert" className="text-sm text-red-600">{error ?? loadError}</p>}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <form onSubmit={createProduct} className="card grid gap-3 sm:grid-cols-2">
-          <h2 className="font-medium sm:col-span-2">{__('New product')}</h2>
-          <div>
-            <label className="label" htmlFor="p-code">{__('Code')}</label>
-            <input id="p-code" className="input" value={product.code} onChange={(e) => setProduct({ ...product, code: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="p-name">{__('Name')}</label>
-            <input id="p-name" className="input" value={product.name} onChange={(e) => setProduct({ ...product, name: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="p-unit">{__('Unit')}</label>
-            <select id="p-unit" className="input" value={product.unit} onChange={(e) => setProduct({ ...product, unit: e.target.value as UnitOfMeasure })}>
-              {Object.values(UnitOfMeasure).map((u) => (<option key={u} value={u}>{UNIT_LABEL[u]}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="p-price">{__('Sale price')}</label>
-            <input id="p-price" type="number" min="0" step="0.01" className="input" value={product.salePrice} onChange={(e) => setProduct({ ...product, salePrice: e.target.value })} required />
-          </div>
-          <button className="btn sm:col-span-2">{__('Add product')}</button>
-        </form>
-
-        <form onSubmit={adjustStock} className="card grid gap-3 sm:grid-cols-2">
-          <h2 className="font-medium sm:col-span-2">{__('Stock adjustment')}</h2>
-          <div className="sm:col-span-2">
-            <label className="label" htmlFor="s-product">{__('Product')}</label>
-            <select id="s-product" className="input" value={adjust.productId} onChange={(e) => setAdjust({ ...adjust, productId: e.target.value })} required>
-              <option value="">{__('Select product…')}</option>
-              {products.map((p) => (<option key={p.id} value={p.id}>{p.code} · {p.name}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="s-qty">{__('Quantity (+ add / − remove)')}</label>
-            <input id="s-qty" type="number" step="0.001" className="input" value={adjust.quantity} onChange={(e) => setAdjust({ ...adjust, quantity: e.target.value })} required />
-          </div>
-          <div>
-            <label className="label" htmlFor="s-cost">{__('Unit cost (when adding)')}</label>
-            <input id="s-cost" type="number" min="0" step="0.01" className="input" value={adjust.unitCost} onChange={(e) => setAdjust({ ...adjust, unitCost: e.target.value })} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="label" htmlFor="s-reason">{__('Reason')}</label>
-            <input id="s-reason" className="input" value={adjust.reason} onChange={(e) => setAdjust({ ...adjust, reason: e.target.value })} required />
-          </div>
-          <button className="btn sm:col-span-2">{__('Apply adjustment')}</button>
-        </form>
-      </div>
-
-      <div className="card overflow-x-auto p-0">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead>
-            <tr>
-              <th className="th">{__('Code')}</th><th className="th">{__('Name')}</th><th className="th">{__('Unit')}</th>
-              <th className="th text-right">{__('In stock')}</th><th className="th text-right">{__('Avg cost')}</th>
-              <th className="th text-right">{__('Stock value')}</th><th className="th text-right">{__('Sale price')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {products.map((p) => (
-              <tr key={p.id}>
-                <td className="td font-mono">{p.code}</td><td className="td">{p.name}</td><td className="td">{UNIT_LABEL[p.unit]}</td>
-                <td className="td text-right">{quantity(p.quantity)}</td><td className="td text-right">{money(p.averageCost)}</td>
-                <td className="td text-right">{money(p.stockValue)}</td><td className="td text-right">{money(p.salePrice)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <h2 className="font-medium">{__('Stock movements')}</h2>
-      <div className="card overflow-x-auto p-0">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead>
-            <tr>
-              <th className="th">{__('Date')}</th><th className="th">{__('Product')}</th><th className="th">{__('Type')}</th>
-              <th className="th text-right">{__('Quantity')}</th><th className="th text-right">{__('Unit cost')}</th>
-              <th className="th">{__('Reference')}</th><th className="th">{__('Reason')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {movements.map((m) => (
-              <tr key={m.id}>
-                <td className="td">{m.date}</td><td className="td">{m.productName}</td><td className="td">{MOVEMENT_LABEL[m.type]}</td>
-                <td className="td text-right">{quantity(m.quantity)}</td><td className="td text-right">{money(m.unitCost)}</td>
-                <td className="td">{m.reference}</td><td className="td">{m.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <>
+      <ControlPanel
+        breadcrumbs={[{ label: __('Products') }]}
+        actions={<button className="btn" onClick={create}><Plus className="h-4 w-4" />{__('New')}</button>}
+        search={search}
+        view={{ mode, onChange: setMode }}
+      />
+      {lowCount > 0 && !search.active.includes('low') && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800" role="status">
+          <TriangleAlert className="h-4 w-4" />
+          {(lowCount === 1 ? __('1 product is below its minimum quantity.') : __(':count products are below their minimum quantity.')).replace(':count', String(lowCount))}
+          <button className="btn-link" onClick={() => search.toggle('low')}>{__('Show them')}</button>
+        </div>
+      )}
+      {!loading && products.length === 0 ? (
+        <EmptyState title={__('Create your first product')} hint={__('Products are what you buy, stock and sell.')} action={<button className="btn" onClick={create}>{__('New product')}</button>} />
+      ) : mode === 'kanban' && search.groupBy === null ? (
+        <KanbanGrid
+          rows={search.results}
+          rowKey={(p) => p.id}
+          onOpen={open}
+          renderCard={(p) => (
+            <div className="flex gap-3">
+              <Package className="h-14 w-14 shrink-0 rounded bg-gray-100 p-3 text-gray-400" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-semibold">{p.name}</div>
+                <div className="text-xs text-gray-500">[{p.code}]</div>
+                <div className="mt-1 text-sm">{__('Price')}: {money(p.salePrice)}</div>
+                <div className={`text-sm ${onHandClass(p)}`}>{__('On hand')}: {quantity(p.quantity)} {UNIT_LABEL[p.unit]}</div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                {p.lowStock && <Badge tone="yellow">{__('Low')}</Badge>}
+                {!p.active && <Badge tone="gray">{__('Archived')}</Badge>}
+              </div>
+            </div>
+          )}
+        />
+      ) : (
+        <ListView
+          rows={search.results}
+          columns={COLUMNS}
+          rowKey={(p) => p.id}
+          loading={loading}
+          groupBy={search.groupBy}
+          rowClassName={(p) => (p.active ? '' : 'text-gray-400')}
+          onOpen={open}
+        />
+      )}
+    </>
   );
 }

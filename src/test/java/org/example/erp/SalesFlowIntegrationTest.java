@@ -55,7 +55,7 @@ class SalesFlowIntegrationTest {
     @Test
     void saleReducesStockPostsRevenueAndCostAndPaymentClearsTheReceivable() {
         var customer = createPartner.handle(new SavePartnerCommand("Silk Road", PartnerKind.CUSTOMER, null, null, null, null, null, true));
-        var flour = createProduct.handle(new SaveProductCommand("F-1", "Flour", UnitOfMeasure.KG, n("2200"), true));
+        var flour = createProduct.handle(new SaveProductCommand("F-1", "Flour", UnitOfMeasure.KG, n("2200"), true, null));
         adjustStock.handle(new AdjustStockCommand(flour.id(), n("100"), n("2000"), "Opening stock"));
         TrialBalanceDTO before = trialBalance.handle();
 
@@ -84,7 +84,7 @@ class SalesFlowIntegrationTest {
     @Test
     void sellingMoreThanInStockFailsAndLeavesNoInvoiceOrLedgerTrace() {
         var customer = createPartner.handle(new SavePartnerCommand("Market", PartnerKind.CUSTOMER, null, null, null, null, null, true));
-        var sugar = createProduct.handle(new SaveProductCommand("S-1", "Sugar", UnitOfMeasure.KG, n("1800"), true));
+        var sugar = createProduct.handle(new SaveProductCommand("S-1", "Sugar", UnitOfMeasure.KG, n("1800"), true, null));
         adjustStock.handle(new AdjustStockCommand(sugar.id(), n("5"), n("1500"), "Opening stock"));
         BigDecimal debitBefore = trialBalance.handle().totalDebit();
 
@@ -98,7 +98,7 @@ class SalesFlowIntegrationTest {
     @Test
     void partialPaymentLeavesTheInvoicePartiallyPaid() {
         var customer = createPartner.handle(new SavePartnerCommand("Fergana", PartnerKind.BOTH, null, null, null, null, null, true));
-        var oil = createProduct.handle(new SaveProductCommand("O-1", "Oil", UnitOfMeasure.PCS, n("15000"), true));
+        var oil = createProduct.handle(new SaveProductCommand("O-1", "Oil", UnitOfMeasure.PCS, n("15000"), true, null));
         adjustStock.handle(new AdjustStockCommand(oil.id(), n("10"), n("12000"), "Opening stock"));
         InvoiceDTO invoice = issueInvoice.handle(new IssueInvoiceCommand(customer.id(), null,
                 List.of(new IssueInvoiceCommand.Item(oil.id(), n("2"), null))));

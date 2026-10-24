@@ -1,103 +1,90 @@
-import { useState, type FormEvent } from 'react';
-import { ApiError } from '../../../lib/http';
-import { money, today } from '../../../lib/format';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { date, money } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
+import { route } from '../../../lib/routes';
 import { useLoad } from '../../../lib/useLoad';
+import { Badge } from '../../../ui/Badge';
+import { ControlPanel } from '../../../ui/ControlPanel';
+import { EmptyState } from '../../../ui/EmptyState';
+import { ListView, type Column } from '../../../ui/ListView';
+import { useSearch } from '../../../ui/search';
 import { salesApi } from '../api';
-import { PaymentChannel } from '../types';
-
-const CHANNEL_LABEL: Record<PaymentChannel, string> = {
-  [PaymentChannel.CASH]: __('Cash (Kassa)'),
-  [PaymentChannel.BANK]: __('Bank'),
-};
+import { RegisterPaymentDialog } from '../components/RegisterPaymentDialog';
+import { CHANNEL_LABEL } from '../labels';
+import { PaymentChannel, type Payment } from '../types';
 
 export function PaymentsPage() {
-  const { data: payments, error: loadError, reload } = useLoad(salesApi.payments, []);
+  const navigate = useNavigate();
+  const { data: payments, loading, reload } = useLoad(salesApi.payments, []);
   const { data: customers } = useLoad(salesApi.customerOptions, []);
   const { data: invoices, reload: reloadInvoices } = useLoad(salesApi.invoices, []);
-  const [form, setForm] = useState({ customerId: '', invoiceId: '', amount: '', method: PaymentChannel.CASH as PaymentChannel, date: today(), note: '' });
-  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
-  const openInvoices = invoices.filter((i) => String(i.customerId) === form.customerId && i.outstanding > 0);
+  const invoiceIdByNumber = new Map(invoices.map((i) => [i.number, i.id]));
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    try {
-      await salesApi.recordPayment({
-        customerId: Number(form.customerId),
-        invoiceId: form.invoiceId === '' ? undefined : Number(form.invoiceId),
-        amount: Number(form.amount),
-        method: form.method,
-        date: form.date,
-        note: form.note,
-      });
-      setForm({ ...form, invoiceId: '', amount: '', note: '' });
-      await Promise.all([reload(), reloadInvoices()]);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : __('Something went wrong.'));
-    }
-  };
+  const columns: readonly Column<Payment>[] = [
+    { key: 'date', label: __('Date'), render: (p) => date(p.date), sortValue: (p) => p.date },
+    { key: 'customer', label: __('Customer'), render: (p) => p.customerName, sortValue: (p) => p.customerName },
+    {
+      key: 'invoice',
+      label: __('Invoice'),
+      render: (p) => {
+        const invoiceId = p.invoiceNumber === null ? undefined : invoiceIdByNumber.get(p.invoiceNumber);
+        if (invoiceId === undefined) return <Badge tone="blue">{__('Advance')}</Badge>;
+        return (
+          <button className="btn-link" onClick={(e) => { e.stopPropagation(); navigate(route('sales.invoices.show', { id: invoiceId })); }}>
+            {p.invoiceNumber}
+          </button>
+        );
+      },
+    },
+    { key: 'method', label: __('Journal'), render: (p) => CHANNEL_LABEL[p.method] },
+    { key: 'note', label: __('Memo'), render: (p) => p.note, className: 'text-gray-500' },
+    { key: 'amount', label: __('Amount'), align: 'right', render: (p) => money(p.amount), sortValue: (p) => p.amount, sum: (p) => p.amount, formatSum: money },
+  ];
+
+  const search = useSearch(payments, {
+    text: (p) => [p.customerName, p.invoiceNumber, p.note],
+    filters: [
+      { key: 'cash', group: 'method', label: __('Cash'), test: (p) => p.method === PaymentChannel.CASH },
+      { key: 'bank', group: 'method', label: __('Bank'), test: (p) => p.method === PaymentChannel.BANK },
+      { key: 'advance', label: __('Advance payments'), test: (p) => p.invoiceNumber === null },
+    ],
+    groupBys: [
+      { key: 'customer', label: __('Customer'), value: (p) => p.customerName },
+      { key: 'method', label: __('Journal'), value: (p) => CHANNEL_LABEL[p.method] },
+      { key: 'month', label: __('Month'), value: (p) => p.date.slice(0, 7) },
+    ],
+  });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold">{__('Customer payments')}</h1>
-
-      <form onSubmit={submit} className="card grid gap-3 sm:grid-cols-3">
-        <div>
-          <label className="label" htmlFor="pay-customer">{__('Customer')}</label>
-          <select id="pay-customer" className="input" value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value, invoiceId: '' })} required>
-            <option value="">{__('Select customer…')}</option>
-            {customers.filter((c) => c.customer).map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="pay-invoice">{__('Invoice (optional)')}</label>
-          <select id="pay-invoice" className="input" value={form.invoiceId} onChange={(e) => setForm({ ...form, invoiceId: e.target.value })}>
-            <option value="">{__('Advance / on account')}</option>
-            {openInvoices.map((i) => (<option key={i.id} value={i.id}>{i.number} · {money(i.outstanding)}</option>))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="pay-amount">{__('Amount')}</label>
-          <input id="pay-amount" type="number" min="0.01" step="0.01" className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="pay-method">{__('Paid into')}</label>
-          <select id="pay-method" className="input" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as PaymentChannel })}>
-            {Object.values(PaymentChannel).map((m) => (<option key={m} value={m}>{CHANNEL_LABEL[m]}</option>))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="pay-date">{__('Date')}</label>
-          <input id="pay-date" type="date" className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
-        </div>
-        <div>
-          <label className="label" htmlFor="pay-note">{__('Note')}</label>
-          <input id="pay-note" className="input" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-        </div>
-        <button className="btn sm:col-span-3">{__('Record payment')}</button>
-        {(error ?? loadError) !== null && <p role="alert" className="text-sm text-red-600 sm:col-span-3">{error ?? loadError}</p>}
-      </form>
-
-      <div className="card overflow-x-auto p-0">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead>
-            <tr>
-              <th className="th">{__('Date')}</th><th className="th">{__('Customer')}</th><th className="th">{__('Invoice')}</th>
-              <th className="th">{__('Paid into')}</th><th className="th text-right">{__('Amount')}</th><th className="th">{__('Note')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {payments.map((p) => (
-              <tr key={p.id}>
-                <td className="td">{p.date}</td><td className="td">{p.customerName}</td><td className="td font-mono">{p.invoiceNumber}</td>
-                <td className="td">{CHANNEL_LABEL[p.method]}</td><td className="td text-right">{money(p.amount)}</td><td className="td">{p.note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <>
+      <ControlPanel
+        breadcrumbs={[{ label: __('Customer payments') }]}
+        actions={<button className="btn" onClick={() => setCreating(true)}><Plus className="h-4 w-4" />{__('New')}</button>}
+        search={search}
+      />
+      <ListView
+        rows={search.results}
+        columns={columns}
+        rowKey={(p) => p.id}
+        loading={loading}
+        groupBy={search.groupBy}
+        empty={<EmptyState title={__('No customer payments yet')} hint={__('Register money received from customers in cash or by bank transfer.')} action={<button className="btn" onClick={() => setCreating(true)}>{__('Register a payment')}</button>} />}
+      />
+      {creating && (
+        <RegisterPaymentDialog
+          customers={customers}
+          invoices={invoices}
+          onClose={() => setCreating(false)}
+          onDone={() => {
+            setCreating(false);
+            void Promise.all([reload(), reloadInvoices()]);
+          }}
+        />
+      )}
+    </>
   );
 }

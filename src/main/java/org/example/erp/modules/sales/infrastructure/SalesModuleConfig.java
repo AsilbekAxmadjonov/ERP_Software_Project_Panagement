@@ -4,6 +4,9 @@ import org.example.erp.modules.sales.application.actions.*;
 import org.example.erp.modules.sales.application.contracts.CustomerDirectory;
 import org.example.erp.modules.sales.application.contracts.ProductCatalog;
 import org.example.erp.modules.sales.application.contracts.StockIssuer;
+import org.example.erp.modules.sales.application.contracts.StockReturner;
+import org.example.erp.modules.sales.domain.CreditNoteNumberSequence;
+import org.example.erp.modules.sales.domain.CreditNoteRepository;
 import org.example.erp.modules.sales.domain.InvoiceNumberSequence;
 import org.example.erp.modules.sales.domain.InvoiceRepository;
 import org.example.erp.modules.sales.domain.PaymentRepository;
@@ -39,6 +42,23 @@ public class SalesModuleConfig {
     @Bean
     ListPayments listPayments(PaymentRepository payments) {
         return new ListPayments(payments);
+    }
+
+    @Bean
+    IssueCreditNote issueCreditNote(InvoiceRepository invoices, CreditNoteRepository creditNotes,
+                                    CreditNoteNumberSequence numbers, StockReturner stock, IntegrationEventPublisher events,
+                                    TransactionRunner tx, CurrentActor actor, Clock clock) {
+        return new IssueCreditNote(invoices, creditNotes, numbers, stock, events, tx, actor, clock);
+    }
+
+    @Bean
+    ListCreditNotes listCreditNotes(CreditNoteRepository creditNotes) {
+        return new ListCreditNotes(creditNotes);
+    }
+
+    @Bean
+    FindInvoice findInvoice(InvoiceRepository invoices) {
+        return new FindInvoice(invoices);
     }
 
     @Bean

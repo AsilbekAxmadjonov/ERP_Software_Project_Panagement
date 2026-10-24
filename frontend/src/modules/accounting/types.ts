@@ -68,6 +68,73 @@ export interface TrialBalance {
   totalCredit: number;
 }
 
+/** One account on a financial statement; amount is on the side where the account kind grows. */
+export interface StatementLine {
+  code: string;
+  name: string;
+  type: AccountKind;
+  amount: number;
+}
+
+export interface ProfitAndLoss {
+  from: string;
+  to: string;
+  revenue: StatementLine[];
+  totalRevenue: number;
+  expenses: StatementLine[];
+  totalExpenses: number;
+  netProfit: number;
+}
+
+export interface BalanceSheet {
+  asOf: string;
+  assets: StatementLine[];
+  totalAssets: number;
+  liabilities: StatementLine[];
+  totalLiabilities: number;
+  equity: StatementLine[];
+  /** Revenue minus expenses not yet closed to an equity account; already included in totalEquity. */
+  currentEarnings: number;
+  totalEquity: number;
+  totalLiabilitiesAndEquity: number;
+  balanced: boolean;
+}
+
+export interface CashFlow {
+  from: string;
+  to: string;
+  accounts: { code: string; name: string; opening: number; inflow: number; outflow: number; closing: number }[];
+  opening: number;
+  inflow: number;
+  outflow: number;
+  closing: number;
+  inflowsByOrigin: CashFlowOrigin[];
+  outflowsByOrigin: CashFlowOrigin[];
+  days: { date: string; inflow: number; outflow: number; closing: number }[];
+  movements: CashMovement[];
+}
+
+export interface CashFlowOrigin {
+  origin: EntryKind;
+  amount: number;
+  /** Number of journal entries behind the amount. */
+  entries: number;
+}
+
+export interface CashMovement {
+  entryId: number;
+  date: string;
+  reference: string | null;
+  description: string | null;
+  origin: EntryKind;
+  accountCode: string;
+  accountName: string;
+  inflow: number;
+  outflow: number;
+  /** Running total of cash and bank after this movement. */
+  balance: number;
+}
+
 export interface EntryInput {
   date: string;
   reference: string;

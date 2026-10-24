@@ -10,6 +10,7 @@ import org.example.erp.modules.accounting.application.commands.PostEntryCommand;
 import org.example.erp.modules.accounting.application.dto.*;
 import org.example.erp.modules.accounting.application.enums.AccountKind;
 import org.example.erp.modules.accounting.application.enums.EntryKind;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -31,11 +32,15 @@ class AccountingController {
     private final GetPeriodLock periodLock;
     private final ClosePeriod closePeriod;
     private final ReopenPeriod reopenPeriod;
+    private final GetProfitAndLoss profitAndLoss;
+    private final GetBalanceSheet balanceSheet;
+    private final GetCashFlow cashFlow;
 
     AccountingController(ListAccounts listAccounts, CreateAccount createAccount, UpdateAccount updateAccount,
                          PostJournalEntry postEntry, ReverseJournalEntry reverseEntry, ListJournalEntries listEntries,
                          GetTrialBalance trialBalance, GetAccountLedger accountLedger, GetPartnerLedger partnerLedger,
-                         GetPeriodLock periodLock, ClosePeriod closePeriod, ReopenPeriod reopenPeriod) {
+                         GetPeriodLock periodLock, ClosePeriod closePeriod, ReopenPeriod reopenPeriod,
+                         GetProfitAndLoss profitAndLoss, GetBalanceSheet balanceSheet, GetCashFlow cashFlow) {
         this.listAccounts = listAccounts;
         this.createAccount = createAccount;
         this.updateAccount = updateAccount;
@@ -48,6 +53,9 @@ class AccountingController {
         this.periodLock = periodLock;
         this.closePeriod = closePeriod;
         this.reopenPeriod = reopenPeriod;
+        this.profitAndLoss = profitAndLoss;
+        this.balanceSheet = balanceSheet;
+        this.cashFlow = cashFlow;
     }
 
     record AccountRequest(@NotBlank String code, @NotBlank String name, @NotNull AccountKind type) {}
@@ -101,6 +109,26 @@ class AccountingController {
     @GetMapping("/reports/trial-balance")
     TrialBalanceDTO trialBalance() {
         return trialBalance.handle();
+    }
+
+    /** Without dates: the current year to date. */
+    @GetMapping("/reports/profit-and-loss")
+    ProfitAndLossDTO profitAndLoss(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return profitAndLoss.handle(from, to);
+    }
+
+    /** Without a date: as of today. */
+    @GetMapping("/reports/balance-sheet")
+    BalanceSheetDTO balanceSheet(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOf) {
+        return balanceSheet.handle(asOf);
+    }
+
+    /** Without dates: the current month to date. */
+    @GetMapping("/reports/cash-flow")
+    CashFlowDTO cashFlow(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return cashFlow.handle(from, to);
     }
 
     @GetMapping("/ledger/account/{code}")

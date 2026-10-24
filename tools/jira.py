@@ -3,7 +3,7 @@
 
 Env:
   JIRA_URL        site base URL, e.g. https://yourcompany.atlassian.net (or pass --url)
-  JIRA_ID         account email used for basic auth
+  JIRA_EMAIL      account email used for basic auth (falls back to JIRA_ID)
   JIRA_API_TOKEN  API token
 
 Usage:
@@ -27,7 +27,8 @@ FIELDS = ["summary", "status", "assignee", "priority", "issuetype"]
 
 
 def request(base, method, path, body=None):
-    email, token = os.environ.get("JIRA_ID"), os.environ.get("JIRA_API_TOKEN")
+    email = os.environ.get("JIRA_EMAIL") or os.environ.get("JIRA_ID")
+    token = os.environ.get("JIRA_API_TOKEN")
     if not email or not token:
         sys.exit("JIRA_ID and JIRA_API_TOKEN must be set")
     auth = base64.b64encode(f"{email}:{token}".encode()).decode()

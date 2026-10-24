@@ -28,10 +28,14 @@ class AccountingController {
     private final GetTrialBalance trialBalance;
     private final GetAccountLedger accountLedger;
     private final GetPartnerLedger partnerLedger;
+    private final GetPeriodLock periodLock;
+    private final ClosePeriod closePeriod;
+    private final ReopenPeriod reopenPeriod;
 
     AccountingController(ListAccounts listAccounts, CreateAccount createAccount, UpdateAccount updateAccount,
                          PostJournalEntry postEntry, ReverseJournalEntry reverseEntry, ListJournalEntries listEntries,
-                         GetTrialBalance trialBalance, GetAccountLedger accountLedger, GetPartnerLedger partnerLedger) {
+                         GetTrialBalance trialBalance, GetAccountLedger accountLedger, GetPartnerLedger partnerLedger,
+                         GetPeriodLock periodLock, ClosePeriod closePeriod, ReopenPeriod reopenPeriod) {
         this.listAccounts = listAccounts;
         this.createAccount = createAccount;
         this.updateAccount = updateAccount;
@@ -41,6 +45,9 @@ class AccountingController {
         this.trialBalance = trialBalance;
         this.accountLedger = accountLedger;
         this.partnerLedger = partnerLedger;
+        this.periodLock = periodLock;
+        this.closePeriod = closePeriod;
+        this.reopenPeriod = reopenPeriod;
     }
 
     record AccountRequest(@NotBlank String code, @NotBlank String name, @NotNull AccountKind type) {}
@@ -53,6 +60,10 @@ class AccountingController {
                     credit == null ? BigDecimal.ZERO : credit, partnerId, memo);
         }
     }
+
+    record CloseRequest(@NotNull LocalDate lockDate) {}
+
+    record ReopenRequest(LocalDate lockDate) {}
 
     record EntryRequest(@NotNull LocalDate date, String reference, String description, @NotEmpty @Valid List<LineRequest> lines) {}
 
@@ -100,5 +111,21 @@ class AccountingController {
     @GetMapping("/ledger/partner/{id}")
     List<LedgerRowDTO> partnerLedger(@PathVariable long id) {
         return partnerLedger.handle(id);
+    }
+
+    @GetMapping("/periods")
+    PeriodLockDTO period() {
+        return periodLock.handle();
+    }
+
+    @PostMapping("/periods/close")
+    PeriodLockDTO closePeriod(@RequestBody @Valid CloseRequest r) {
+        return closePeriod.handle(r.lockDate());
+    }
+
+    /** Body is optional: without a lockDate every period is reopened. */
+    @PostMapping("/periods/reopen")
+    PeriodLockDTO reopenPeriod(@RequestBody(required = false) ReopenRequest r) {
+        return reopenPeriod.handle(r == null ? null : r.lockDate());
     }
 }

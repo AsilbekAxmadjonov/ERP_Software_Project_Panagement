@@ -5,6 +5,7 @@ import org.example.erp.modules.accounting.domain.Account;
 import org.example.erp.modules.accounting.domain.AccountRepository;
 import org.example.erp.modules.accounting.domain.JournalEntry;
 import org.example.erp.modules.accounting.domain.JournalEntryRepository;
+import org.example.erp.modules.accounting.domain.PeriodLockRepository;
 import org.example.erp.platform.CurrentActor;
 import org.example.erp.platform.NotFoundException;
 import org.example.erp.platform.TransactionRunner;
@@ -16,14 +17,16 @@ import java.util.stream.Collectors;
 public final class ReverseJournalEntry {
     private final AccountRepository accounts;
     private final JournalEntryRepository entries;
+    private final PeriodLockRepository periods;
     private final TransactionRunner tx;
     private final CurrentActor actor;
     private final Clock clock;
 
-    public ReverseJournalEntry(AccountRepository accounts, JournalEntryRepository entries, TransactionRunner tx,
-                               CurrentActor actor, Clock clock) {
+    public ReverseJournalEntry(AccountRepository accounts, JournalEntryRepository entries, PeriodLockRepository periods,
+                               TransactionRunner tx, CurrentActor actor, Clock clock) {
         this.accounts = accounts;
         this.entries = entries;
+        this.periods = periods;
         this.tx = tx;
         this.actor = actor;
         this.clock = clock;
@@ -32,7 +35,9 @@ public final class ReverseJournalEntry {
     public JournalEntryDTO handle(long entryId) {
         return tx.run(() -> {
             JournalEntry original = entries.findById(entryId).orElseThrow(() -> new NotFoundException("Entry not found"));
-            JournalEntry reversal = original.reversal(LocalDate.now(clock), actor.username());
+            LocalDate today = LocalDate.now(clock);
+            periods.get().ensureOpen(today);
+            JournalEntry reversal = original.reversal(today, actor.username());
             original.markReversed();
             entries.save(original);
             return AccountingMapper.toDto(entries.save(reversal),

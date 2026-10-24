@@ -4,11 +4,14 @@ import { __ } from '../lib/i18n';
 import type { RouteName } from '../lib/routes';
 import { AccountingDashboardPage } from '../modules/accounting/pages/AccountingDashboardPage';
 import { AccountsPage } from '../modules/accounting/pages/AccountsPage';
+import { BalanceSheetPage } from '../modules/accounting/pages/BalanceSheetPage';
+import { CashFlowPage } from '../modules/accounting/pages/CashFlowPage';
 import { JournalEntryFormPage } from '../modules/accounting/pages/JournalEntryFormPage';
 import { JournalListPage } from '../modules/accounting/pages/JournalListPage';
 import { LedgerPage } from '../modules/accounting/pages/LedgerPage';
 import { LockDatesPage } from '../modules/accounting/pages/LockDatesPage';
 import { PartnerLedgerPage } from '../modules/accounting/pages/PartnerLedgerPage';
+import { ProfitLossPage } from '../modules/accounting/pages/ProfitLossPage';
 import { TrialBalancePage } from '../modules/accounting/pages/TrialBalancePage';
 import { AuditLogPage } from '../modules/audit/pages/AuditLogPage';
 import { EmployeeFormPage } from '../modules/employees/pages/EmployeeFormPage';
@@ -180,6 +183,9 @@ export const APPS: readonly AppDefinition[] = [
       {
         label: __('Reporting'),
         children: [
+          { label: __('Profit and loss'), name: 'accounting.profit-loss' },
+          { label: __('Balance sheet'), name: 'accounting.balance-sheet' },
+          { label: __('Cash flow'), name: 'accounting.cash-flow' },
           { label: __('Trial balance'), name: 'accounting.trial-balance' },
           { label: __('General ledger'), name: 'accounting.ledger' },
           { label: __('Partner ledger'), name: 'accounting.partner-ledger' },
@@ -199,6 +205,9 @@ export const APPS: readonly AppDefinition[] = [
       { name: 'accounting.journal.new', element: <JournalEntryFormPage />, roles: FINANCE },
       { name: 'accounting.journal.show', element: <JournalEntryFormPage /> },
       { name: 'accounting.trial-balance', element: <TrialBalancePage /> },
+      { name: 'accounting.profit-loss', element: <ProfitLossPage /> },
+      { name: 'accounting.balance-sheet', element: <BalanceSheetPage /> },
+      { name: 'accounting.cash-flow', element: <CashFlowPage /> },
       { name: 'accounting.ledger', element: <LedgerPage /> },
       { name: 'accounting.partner-ledger', element: <PartnerLedgerPage /> },
       { name: 'accounting.accounts', element: <AccountsPage /> },

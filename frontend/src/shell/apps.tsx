@@ -26,6 +26,7 @@ import { ContactFormPage } from '../modules/partners/pages/ContactFormPage';
 import { ContactsPage } from '../modules/partners/pages/ContactsPage';
 import { PurchaseOrderFormPage } from '../modules/purchase/pages/PurchaseOrderFormPage';
 import { PurchaseOrdersPage } from '../modules/purchase/pages/PurchaseOrdersPage';
+import { PurchaseReportPage } from '../modules/purchase/pages/PurchaseReportPage';
 import { SupplierPaymentsPage } from '../modules/purchase/pages/SupplierPaymentsPage';
 import { VendorsPage } from '../modules/purchase/pages/VendorsPage';
 import { CreditNotesPage } from '../modules/sales/pages/CreditNotesPage';
@@ -120,6 +121,7 @@ export const APPS: readonly AppDefinition[] = [
         ],
       },
       { label: __('Vendors'), name: 'purchase.vendors' },
+      { label: __('Reporting'), children: [{ label: __('Purchase analysis'), name: 'purchase.report' }] },
     ],
     routes: [
       { name: 'purchase.orders', element: <PurchaseOrdersPage /> },
@@ -127,6 +129,7 @@ export const APPS: readonly AppDefinition[] = [
       { name: 'purchase.orders.show', element: <PurchaseOrderFormPage /> },
       { name: 'purchase.payments', element: <SupplierPaymentsPage /> },
       { name: 'purchase.vendors', element: <VendorsPage /> },
+      { name: 'purchase.report', element: <PurchaseReportPage /> },
     ],
   },
   {

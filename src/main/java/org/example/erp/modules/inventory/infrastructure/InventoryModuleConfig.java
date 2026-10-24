@@ -24,13 +24,13 @@ public class InventoryModuleConfig {
     }
 
     @Bean
-    CreateProduct createProduct(ProductRepository products, TransactionRunner tx) {
-        return new CreateProduct(products, tx);
+    CreateProduct createProduct(ProductRepository products, IntegrationEventPublisher events, TransactionRunner tx) {
+        return new CreateProduct(products, events, tx);
     }
 
     @Bean
-    UpdateProduct updateProduct(ProductRepository products, TransactionRunner tx) {
-        return new UpdateProduct(products, tx);
+    UpdateProduct updateProduct(ProductRepository products, IntegrationEventPublisher events, TransactionRunner tx) {
+        return new UpdateProduct(products, events, tx);
     }
 
     @Bean

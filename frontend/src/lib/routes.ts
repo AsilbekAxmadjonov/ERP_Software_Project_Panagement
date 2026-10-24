@@ -2,6 +2,7 @@ const paths = {
   login: '/login',
   home: '/',
   'users.index': '/settings/users',
+  'audit.index': '/settings/audit',
   'partners.index': '/contacts',
   'partners.new': '/contacts/new',
   'partners.show': '/contacts/:id',

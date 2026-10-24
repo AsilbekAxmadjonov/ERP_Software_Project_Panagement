@@ -3,9 +3,11 @@ package org.example.erp.modules.accounting.application.actions;
 import org.example.erp.modules.accounting.application.commands.PostEntryCommand;
 import org.example.erp.modules.accounting.application.dto.JournalEntryDTO;
 import org.example.erp.modules.accounting.application.enums.EntryKind;
+import org.example.erp.modules.accounting.application.events.JournalEntryPosted;
 import org.example.erp.modules.accounting.domain.*;
 import org.example.erp.platform.BusinessRuleException;
 import org.example.erp.platform.CurrentActor;
+import org.example.erp.platform.IntegrationEventPublisher;
 import org.example.erp.platform.TransactionRunner;
 
 import java.util.HashMap;
@@ -18,14 +20,16 @@ public final class PostJournalEntry {
     private final PeriodLockRepository periods;
     private final TransactionRunner tx;
     private final CurrentActor actor;
+    private final IntegrationEventPublisher events;
 
     public PostJournalEntry(AccountRepository accounts, JournalEntryRepository entries, PeriodLockRepository periods,
-                            TransactionRunner tx, CurrentActor actor) {
+                            TransactionRunner tx, CurrentActor actor, IntegrationEventPublisher events) {
         this.accounts = accounts;
         this.entries = entries;
         this.periods = periods;
         this.tx = tx;
         this.actor = actor;
+        this.events = events;
     }
 
     public JournalEntryDTO handle(PostEntryCommand c, EntryKind kind) {
@@ -40,7 +44,9 @@ public final class PostJournalEntry {
             }).toList();
             JournalEntry entry = JournalEntry.post(c.date(), c.reference(), c.description(),
                     EntryOrigin.valueOf(kind.name()), actor.username(), lines);
-            return AccountingMapper.toDto(entries.save(entry), names);
+            JournalEntryDTO saved = AccountingMapper.toDto(entries.save(entry), names);
+            events.publish(new JournalEntryPosted(saved));
+            return saved;
         });
     }
 }

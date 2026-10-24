@@ -19,4 +19,12 @@ public interface IntegrationEvent {
     String causationId();
 
     Map<String, Object> payload();
+
+    /**
+     * Who caused the event when that is not the authenticated caller, e.g. the username of a login attempt.
+     * Null (the default) means the current actor.
+     */
+    default String actor() {
+        return null;
+    }
 }

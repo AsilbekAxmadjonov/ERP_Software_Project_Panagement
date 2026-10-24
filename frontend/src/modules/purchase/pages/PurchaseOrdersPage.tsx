@@ -1,12 +1,13 @@
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { date, money } from '../../../lib/format';
+import { date, money, today } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
 import { route } from '../../../lib/routes';
 import { useLoad } from '../../../lib/useLoad';
 import { Badge } from '../../../ui/Badge';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { EmptyState } from '../../../ui/EmptyState';
+import { listSheet } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import { useSearch } from '../../../ui/search';
 import { purchaseApi } from '../api';
@@ -21,11 +22,12 @@ const COLUMNS: readonly Column<PurchaseOrder>[] = [
   { key: 'buyer', label: __('Buyer'), render: (o) => o.createdBy, className: 'text-gray-500' },
   { key: 'total', label: __('Total'), align: 'right', render: (o) => money(o.total), sortValue: (o) => o.total, sum: (o) => o.total, formatSum: money },
   { key: 'due', label: __('Amount due'), align: 'right', render: (o) => money(o.outstanding), sortValue: (o) => o.outstanding, sum: (o) => o.outstanding, formatSum: money },
-  { key: 'status', label: __('Status'), render: (o) => <Badge tone={ORDER_STATUS[o.status].tone}>{ORDER_STATUS[o.status].label}</Badge> },
+  { key: 'status', label: __('Status'), render: (o) => <Badge tone={ORDER_STATUS[o.status].tone}>{ORDER_STATUS[o.status].label}</Badge>, exportValue: (o) => ORDER_STATUS[o.status].label },
   {
     key: 'payment',
     label: __('Payment'),
     render: (o) => (o.status === OrderStatus.RECEIVED ? <Badge tone={PAYMENT_STATUS[o.paymentStatus].tone}>{PAYMENT_STATUS[o.paymentStatus].label}</Badge> : null),
+    exportValue: (o) => (o.status === OrderStatus.RECEIVED ? PAYMENT_STATUS[o.paymentStatus].label : null),
   },
 ];
 
@@ -54,6 +56,7 @@ export function PurchaseOrdersPage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('Purchase orders') }]}
+        exportData={() => ({ fileName: `purchase-orders_${today()}`, sheets: [listSheet(__('Purchase orders'), COLUMNS, search.results)] })}
         actions={<button className="btn" onClick={create}><Plus className="h-4 w-4" />{__('New')}</button>}
         search={search}
       />

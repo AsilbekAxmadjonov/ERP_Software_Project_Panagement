@@ -1,9 +1,9 @@
-import { Printer } from 'lucide-react';
-import { money } from '../../../lib/format';
+import { money, today } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
 import { useLoad } from '../../../lib/useLoad';
 import { Badge } from '../../../ui/Badge';
 import { ControlPanel } from '../../../ui/ControlPanel';
+import { listSheet } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import { useSearch } from '../../../ui/search';
 import { accountingApi } from '../api';
@@ -34,7 +34,7 @@ export function TrialBalancePage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('Trial balance') }]}
-        actions={<button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />{__('Print')}</button>}
+        exportData={() => ({ fileName: `trial-balance_${today()}`, sheets: [listSheet(__('Trial balance'), COLUMNS, search.results)] })}
         search={search}
         aside={<Badge tone={balanced ? 'green' : 'red'}>{balanced ? __('Ledger is balanced') : __('Ledger is NOT balanced')}</Badge>}
       />

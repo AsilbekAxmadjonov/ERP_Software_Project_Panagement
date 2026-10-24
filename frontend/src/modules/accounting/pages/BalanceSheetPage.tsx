@@ -1,4 +1,3 @@
-import { Printer } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { date, money, today } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
@@ -6,7 +5,7 @@ import { useLoad } from '../../../lib/useLoad';
 import { Badge } from '../../../ui/Badge';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { accountingApi } from '../api';
-import { ReportSheet, StatementTable, type StatementSection } from '../components/ReportSheet';
+import { ReportSheet, StatementTable, statementSheet, type StatementSection } from '../components/ReportSheet';
 import type { BalanceSheet } from '../types';
 
 export function BalanceSheetPage() {
@@ -30,7 +29,11 @@ export function BalanceSheetPage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('Balance sheet') }]}
-        actions={<button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />{__('Print')}</button>}
+        printTitle={false}
+        exportData={() => ({
+          fileName: `balance-sheet_${data?.asOf ?? asOf}`,
+          sheets: [statementSheet(__('Balance sheet'), sections, data ? [{ label: __('Total liabilities and equity'), amount: data.totalLiabilitiesAndEquity }] : [])],
+        })}
         aside={data && (
           <Badge tone={data.balanced ? 'green' : 'red'}>
             {data.balanced ? __('Balanced: assets = liabilities + equity') : __('Not balanced')}

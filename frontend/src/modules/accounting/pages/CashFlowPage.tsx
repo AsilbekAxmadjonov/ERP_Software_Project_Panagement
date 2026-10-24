@@ -1,4 +1,3 @@
-import { Printer } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { date, money } from '../../../lib/format';
@@ -8,9 +7,10 @@ import { useLoad } from '../../../lib/useLoad';
 import { Badge } from '../../../ui/Badge';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { StatCard } from '../../../ui/EmptyState';
+import { listSheet, type ExportSpec } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import { accountingApi } from '../api';
-import { DateRangeFilter, ReportSheet, StatementTable } from '../components/ReportSheet';
+import { DateRangeFilter, ReportSheet, StatementTable, statementSheet, type StatementSection } from '../components/ReportSheet';
 import { ORIGIN, originLabel } from '../labels';
 import { PERIOD_PRESETS } from '../periods';
 import type { CashFlow, CashFlowOrigin, CashMovement } from '../types';
@@ -23,20 +23,20 @@ const DAY_COLUMNS: readonly Column<Day>[] = [
   { key: 'in', label: __('Cash in'), align: 'right', render: (d) => (d.inflow > 0 ? money(d.inflow) : ''), sum: (d) => d.inflow, formatSum: money },
   { key: 'out', label: __('Cash out'), align: 'right', render: (d) => (d.outflow > 0 ? money(d.outflow) : ''), sum: (d) => d.outflow, formatSum: money },
   { key: 'net', label: __('Net'), align: 'right', render: (d) => money(d.inflow - d.outflow), sum: (d) => d.inflow - d.outflow, formatSum: money },
-  { key: 'closing', label: __('Closing balance'), align: 'right', render: (d) => <span className="font-medium">{money(d.closing)}</span> },
+  { key: 'closing', label: __('Closing balance'), align: 'right', render: (d) => <span className="font-medium">{money(d.closing)}</span>, exportValue: (d) => d.closing },
 ];
 
 type Movement = CashMovement & { index: number };
 
 const MOVEMENT_COLUMNS: readonly Column<Movement>[] = [
   { key: 'date', label: __('Date'), render: (m) => date(m.date) },
-  { key: 'reference', label: __('Reference'), render: (m) => <span className="font-medium">{m.reference ?? `#${m.entryId}`}</span> },
+  { key: 'reference', label: __('Reference'), render: (m) => <span className="font-medium">{m.reference ?? `#${m.entryId}`}</span>, exportValue: (m) => m.reference ?? `#${m.entryId}` },
   { key: 'description', label: __('Label'), render: (m) => m.description, className: 'text-gray-600' },
-  { key: 'origin', label: __('Origin'), render: (m) => <Badge tone={ORIGIN[m.origin]?.tone ?? 'gray'}>{originLabel(m.origin)}</Badge> },
+  { key: 'origin', label: __('Origin'), render: (m) => <Badge tone={ORIGIN[m.origin]?.tone ?? 'gray'}>{originLabel(m.origin)}</Badge>, exportValue: (m) => originLabel(m.origin) },
   { key: 'account', label: __('Account'), render: (m) => m.accountName },
   { key: 'in', label: __('Cash in'), align: 'right', render: (m) => (m.inflow > 0 ? money(m.inflow) : ''), sum: (m) => m.inflow, formatSum: money },
   { key: 'out', label: __('Cash out'), align: 'right', render: (m) => (m.outflow > 0 ? money(m.outflow) : ''), sum: (m) => m.outflow, formatSum: money },
-  { key: 'balance', label: __('Balance'), align: 'right', render: (m) => <span className="font-medium">{money(m.balance)}</span> },
+  { key: 'balance', label: __('Balance'), align: 'right', render: (m) => <span className="font-medium">{money(m.balance)}</span>, exportValue: (m) => m.balance },
 ];
 
 const BREAKDOWNS: Record<Breakdown, string> = {
@@ -54,12 +54,41 @@ export function CashFlowPage() {
   const load = useCallback(() => accountingApi.cashFlow(range.from, range.to), [range]);
   const { data, loading, error } = useLoad<CashFlow | null>(load, null);
 
+  const sections: StatementSection[] = data
+    ? [
+        { title: __('Cash in by origin'), rows: originRows(data.inflowsByOrigin), empty: __('No cash received'), total: { label: __('Total cash in'), amount: data.inflow } },
+        { title: __('Cash out by origin'), rows: originRows(data.outflowsByOrigin), empty: __('No cash paid out'), total: { label: __('Total cash out'), amount: data.outflow } },
+      ]
+    : [];
+  const results = data
+    ? [
+        { label: __('Net change'), amount: data.inflow - data.outflow },
+        { label: __('Closing balance'), amount: data.closing },
+      ]
+    : [];
+
+  const exportData = (): ExportSpec => ({
+    fileName: `cash-flow_${data?.from ?? range.from}_${data?.to ?? range.to}`,
+    sheets: data
+      ? [
+          {
+            name: __('Accounts'),
+            columns: [{ label: __('Code'), format: 'text' }, { label: __('Account') }, { label: __('Opening') }, { label: __('Cash in') }, { label: __('Cash out') }, { label: __('Closing') }],
+            rows: [
+              ...data.accounts.map((a) => [a.code, a.name, a.opening, a.inflow, a.outflow, a.closing]),
+              [null, __('Total'), data.opening, data.inflow, data.outflow, data.closing].map((value) => ({ value, bold: true })),
+            ],
+          },
+          statementSheet(__('By origin'), sections, results),
+          listSheet(__('By day'), DAY_COLUMNS, data.days),
+          listSheet(__('By entry'), MOVEMENT_COLUMNS, data.movements.map((m, index) => ({ ...m, index }))),
+        ]
+      : [],
+  });
+
   return (
     <>
-      <ControlPanel
-        breadcrumbs={[{ label: __('Cash flow') }]}
-        actions={<button className="btn-secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />{__('Print')}</button>}
-      />
+      <ControlPanel breadcrumbs={[{ label: __('Cash flow') }]} printTitle={false} exportData={exportData} />
       <div className="space-y-4 p-4">
         <DateRangeFilter value={range} onChange={setRange} />
         {error && <p className="no-print mx-auto max-w-4xl text-red-600">{error}</p>}
@@ -110,16 +139,7 @@ export function CashFlowPage() {
                 </tfoot>
               </table>
               <div className="mt-4 border-t border-gray-200">
-                <StatementTable
-                  sections={[
-                    { title: __('Cash in by origin'), rows: originRows(data.inflowsByOrigin), empty: __('No cash received'), total: { label: __('Total cash in'), amount: data.inflow } },
-                    { title: __('Cash out by origin'), rows: originRows(data.outflowsByOrigin), empty: __('No cash paid out'), total: { label: __('Total cash out'), amount: data.outflow } },
-                  ]}
-                  results={[
-                    { label: __('Net change'), amount: data.inflow - data.outflow },
-                    { label: __('Closing balance'), amount: data.closing },
-                  ]}
-                />
+                <StatementTable sections={sections} results={results} />
               </div>
             </>
           )}

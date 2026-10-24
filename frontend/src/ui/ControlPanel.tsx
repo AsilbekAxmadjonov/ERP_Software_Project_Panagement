@@ -2,6 +2,8 @@ import { ChevronRight, Filter, Kanban, Layers, List, Search, X } from 'lucide-re
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { __ } from '../lib/i18n';
+import type { ExportSpec } from './export';
+import { ExportActions } from './ExportActions';
 import type { SearchState } from './search';
 
 export interface Crumb {
@@ -19,14 +21,31 @@ interface ControlPanelProps<T> {
   view?: { mode: ViewMode; onChange: (mode: ViewMode) => void };
   /** Shown on the right, e.g. a record count or a pager. */
   aside?: ReactNode;
+  /**
+   * Adds "Export" (.xlsx of what this builds, called on click) and "Print / PDF" buttons, and a title that only
+   * appears on paper since the control panel itself is not printed.
+   */
+  exportData?: () => ExportSpec;
+  /** Set to false when the page prints its own heading, e.g. a report sheet. */
+  printTitle?: boolean;
 }
 
-export function ControlPanel<T>({ breadcrumbs, actions, search, view, aside }: ControlPanelProps<T>) {
+export function ControlPanel<T>({ breadcrumbs, actions, search, view, aside, exportData, printTitle = true }: ControlPanelProps<T>) {
+  return (
+    <>
+      {exportData && printTitle && <h1 className="hidden px-4 pt-2 text-lg font-semibold print:block">{breadcrumbs[breadcrumbs.length - 1]?.label}</h1>}
+      <ControlBar breadcrumbs={breadcrumbs} actions={actions} search={search} view={view} aside={aside} exportData={exportData} />
+    </>
+  );
+}
+
+function ControlBar<T>({ breadcrumbs, actions, search, view, aside, exportData }: ControlPanelProps<T>) {
   return (
     <div className="no-print border-b border-gray-200 bg-white px-4 py-2.5">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {actions}
+          {exportData && <ExportActions build={exportData} />}
           <Breadcrumbs items={breadcrumbs} />
         </div>
         {search && <SearchBar search={search} />}

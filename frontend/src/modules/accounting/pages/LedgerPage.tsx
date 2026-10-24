@@ -4,7 +4,7 @@ import { useLoad } from '../../../lib/useLoad';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { Many2One } from '../../../ui/Many2One';
 import { accountingApi } from '../api';
-import { LedgerView } from '../components/LedgerView';
+import { LedgerView, ledgerSheet } from '../components/LedgerView';
 import type { LedgerRow } from '../types';
 
 export function LedgerPage() {
@@ -18,6 +18,7 @@ export function LedgerPage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('General ledger') }]}
+        exportData={code === null ? undefined : () => ({ fileName: `general-ledger_${code}`, sheets: [ledgerSheet(code, rows)] })}
         aside={
           <div className="w-80">
             <Many2One

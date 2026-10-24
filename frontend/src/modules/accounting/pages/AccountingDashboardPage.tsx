@@ -1,5 +1,5 @@
-import { BookOpen, FileSpreadsheet, Landmark, Lock, Plus, Scale, Users } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { BookOpen, FileSpreadsheet, Landmark, Lock, Plus, Scale, TrendingUp, Users, Wallet } from 'lucide-react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { date, money } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
@@ -10,7 +10,8 @@ import { ControlPanel } from '../../../ui/ControlPanel';
 import { Page, StatCard } from '../../../ui/EmptyState';
 import { accountingApi } from '../api';
 import { ORIGIN } from '../labels';
-import { AccountKind, type TrialBalance } from '../types';
+import { PERIOD_PRESETS } from '../periods';
+import { AccountKind, type AccountingSummary, type TrialBalance } from '../types';
 
 const EMPTY: TrialBalance = { rows: [], totalDebit: 0, totalCredit: 0 };
 
@@ -26,7 +27,17 @@ const DEBIT_NORMAL: Record<AccountKind, boolean> = {
   [AccountKind.REVENUE]: false,
 };
 
+type Period = 'month' | 'year';
+
+const PERIODS: Record<Period, { label: string; hint: string }> = {
+  month: { label: __('This month'), hint: __('Month to date') },
+  year: { label: __('This year'), hint: __('Year to date') },
+};
+
 const QUICK_LINKS: readonly { name: RouteName; label: string; icon: ReactNode }[] = [
+  { name: 'accounting.profit-loss', label: __('Profit and loss'), icon: <TrendingUp className="h-4 w-4" /> },
+  { name: 'accounting.balance-sheet', label: __('Balance sheet'), icon: <Scale className="h-4 w-4" /> },
+  { name: 'accounting.cash-flow', label: __('Cash flow'), icon: <Wallet className="h-4 w-4" /> },
   { name: 'accounting.journal', label: __('Journal entries'), icon: <BookOpen className="h-4 w-4" /> },
   { name: 'accounting.trial-balance', label: __('Trial balance'), icon: <Scale className="h-4 w-4" /> },
   { name: 'accounting.ledger', label: __('General ledger'), icon: <FileSpreadsheet className="h-4 w-4" /> },
@@ -40,14 +51,17 @@ export function AccountingDashboardPage() {
   const { data: tb } = useLoad(accountingApi.trialBalance, EMPTY);
   const { data: entries } = useLoad(accountingApi.entries, []);
   const { data: lock } = useLoad(accountingApi.periodLock, null);
+  const [period, setPeriod] = useState<Period>('month');
+  const loadSummary = useCallback(() => {
+    const range = PERIOD_PRESETS[period].range();
+    return accountingApi.summary(range.from, range.to);
+  }, [period]);
+  const { data: summary } = useLoad<AccountingSummary | null>(loadSummary, null);
 
   const balanceOf = (code: string) => {
     const row = tb.rows.find((r) => r.code === code);
     return row ? (DEBIT_NORMAL[row.type] ? row.debit - row.credit : row.credit - row.debit) : 0;
   };
-  const totalOf = (kind: AccountKind) =>
-    tb.rows.filter((r) => r.type === kind).reduce((sum, r) => sum + (DEBIT_NORMAL[kind] ? r.debit - r.credit : r.credit - r.debit), 0);
-  const profit = totalOf(AccountKind.REVENUE) - totalOf(AccountKind.EXPENSE);
   const recent = [...entries].sort((a, b) => b.id - a.id).slice(0, 8);
   const balanced = Math.abs(tb.totalDebit - tb.totalCredit) < 0.005;
 
@@ -58,13 +72,35 @@ export function AccountingDashboardPage() {
         actions={<button className="btn" onClick={() => navigate(route('accounting.journal.new'))}><Plus className="h-4 w-4" />{__('New entry')}</button>}
       />
       <Page>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard label={__('Cash')} value={money(balanceOf(CODE.cash))} onClick={() => navigate(route('accounting.ledger'))} />
-          <StatCard label={__('Bank')} value={money(balanceOf(CODE.bank))} onClick={() => navigate(route('accounting.ledger'))} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label={__('Cash')} value={money(balanceOf(CODE.cash))} hint={__('Kassa, today')} onClick={() => navigate(route('accounting.cash-flow'))} />
+          <StatCard label={__('Bank')} value={money(balanceOf(CODE.bank))} hint={__('Today')} onClick={() => navigate(route('accounting.cash-flow'))} />
           <StatCard label={__('Receivables')} value={money(balanceOf(CODE.receivable))} tone="warning" hint={__('Customers owe us')} onClick={() => navigate(route('accounting.partner-ledger'))} />
           <StatCard label={__('Payables')} value={money(balanceOf(CODE.payable))} tone="danger" hint={__('We owe vendors')} onClick={() => navigate(route('accounting.partner-ledger'))} />
-          <StatCard label={__('Revenue')} value={money(totalOf(AccountKind.REVENUE))} tone="success" />
-          <StatCard label={__('Profit')} value={money(profit)} tone={profit >= 0 ? 'success' : 'danger'} hint={__('Revenue minus expenses')} />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold text-gray-700">{__('Performance')}</h2>
+            <div className="flex overflow-hidden rounded border border-gray-300 text-sm">
+              {(Object.keys(PERIODS) as Period[]).map((p) => (
+                <button key={p} type="button" aria-pressed={p === period} onClick={() => setPeriod(p)} className={`px-3 py-1 ${p === period ? 'bg-brand text-white' : 'bg-white hover:bg-gray-50'}`}>
+                  {PERIODS[p].label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <StatCard label={__('Revenue')} value={summary ? money(summary.revenue) : '…'} tone="success" hint={PERIODS[period].hint} onClick={() => navigate(route('accounting.profit-loss'))} />
+            <StatCard label={__('Expenses')} value={summary ? money(summary.expenses) : '…'} tone="danger" hint={__('All expense accounts, incl. cost of goods sold')} onClick={() => navigate(route('accounting.profit-loss'))} />
+            <StatCard
+              label={__('Profit')}
+              value={summary ? money(summary.profit) : '…'}
+              tone={summary && summary.profit < 0 ? 'danger' : 'success'}
+              hint={__('Revenue minus expenses')}
+              onClick={() => navigate(route('accounting.profit-loss'))}
+            />
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">

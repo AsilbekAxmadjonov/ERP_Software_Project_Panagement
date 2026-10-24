@@ -3,6 +3,7 @@ import { date, money } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
 import { route } from '../../../lib/routes';
 import { EmptyState } from '../../../ui/EmptyState';
+import { listSheet, type ExportSheet } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import type { LedgerRow } from '../types';
 
@@ -10,12 +11,16 @@ type Row = LedgerRow & { index: number };
 
 const COLUMNS: readonly Column<Row>[] = [
   { key: 'date', label: __('Date'), render: (r) => date(r.date) },
-  { key: 'reference', label: __('Reference'), render: (r) => <span className="font-medium">{r.reference}</span> },
+  { key: 'reference', label: __('Reference'), render: (r) => <span className="font-medium">{r.reference}</span>, exportValue: (r) => r.reference },
   { key: 'description', label: __('Label'), render: (r) => r.description, className: 'text-gray-600' },
   { key: 'debit', label: __('Debit'), align: 'right', render: (r) => (r.debit > 0 ? money(r.debit) : ''), sum: (r) => r.debit, formatSum: money },
   { key: 'credit', label: __('Credit'), align: 'right', render: (r) => (r.credit > 0 ? money(r.credit) : ''), sum: (r) => r.credit, formatSum: money },
-  { key: 'balance', label: __('Balance'), align: 'right', render: (r) => <span className="font-medium">{money(r.balance)}</span> },
+  { key: 'balance', label: __('Balance'), align: 'right', render: (r) => <span className="font-medium">{money(r.balance)}</span>, exportValue: (r) => r.balance },
 ];
+
+/** The ledger as a worksheet, in posting order with its running balance. */
+export const ledgerSheet = (name: string, rows: readonly LedgerRow[]): ExportSheet =>
+  listSheet(name, COLUMNS, rows.map((r, index) => ({ ...r, index })));
 
 /** Ledger lines with a running balance, in posting order; a row opens its journal entry. */
 export function LedgerView({ rows, loading, selected }: { rows: readonly LedgerRow[]; loading: boolean; selected: boolean }) {

@@ -14,6 +14,10 @@ export interface Column<T> {
   sum?: (row: T) => number;
   formatSum?: (value: number) => string;
   className?: string;
+  /** Plain value for Excel export when render returns markup without a usable sortValue (badges, styled spans). */
+  exportValue?: (row: T) => string | number | null;
+  /** How exported numbers are shown; right-aligned columns default to money. */
+  exportFormat?: 'money' | 'quantity' | 'text';
 }
 
 interface ListViewProps<T> {

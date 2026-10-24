@@ -17,7 +17,9 @@ public enum LedgerRole {
     UTILITIES_EXPENSE("6200", "Utilities Expense", AccountKind.EXPENSE),
     TRANSPORT_EXPENSE("6300", "Transport Expense", AccountKind.EXPENSE),
     OFFICE_SUPPLIES_EXPENSE("6400", "Office Supplies Expense", AccountKind.EXPENSE),
-    OTHER_EXPENSES("6900", "Other Expenses", AccountKind.EXPENSE);
+    OTHER_EXPENSES("6900", "Other Expenses", AccountKind.EXPENSE),
+    SALARIES_PAYABLE("2100", "Salaries Payable", AccountKind.LIABILITY),
+    SALARY_EXPENSE("6500", "Salary Expense", AccountKind.EXPENSE);
 
     private final String code;
     private final String defaultName;

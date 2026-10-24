@@ -18,6 +18,7 @@ export const EntryKind = {
   SUPPLIER_PAYMENT: 'SUPPLIER_PAYMENT',
   EXPENSE: 'EXPENSE',
   OTHER_INCOME: 'OTHER_INCOME',
+  PAYROLL: 'PAYROLL',
 } as const;
 export type EntryKind = (typeof EntryKind)[keyof typeof EntryKind];
 

@@ -1,4 +1,4 @@
-import { BookOpenCheck, Boxes, ContactRound, Settings, ShoppingCart, TrendingUp, Wallet, type LucideIcon } from 'lucide-react';
+import { BookOpenCheck, Boxes, ContactRound, Settings, ShoppingCart, TrendingUp, Users, Wallet, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { __ } from '../lib/i18n';
 import type { RouteName } from '../lib/routes';
@@ -11,6 +11,8 @@ import { LockDatesPage } from '../modules/accounting/pages/LockDatesPage';
 import { PartnerLedgerPage } from '../modules/accounting/pages/PartnerLedgerPage';
 import { TrialBalancePage } from '../modules/accounting/pages/TrialBalancePage';
 import { AuditLogPage } from '../modules/audit/pages/AuditLogPage';
+import { EmployeeFormPage } from '../modules/employees/pages/EmployeeFormPage';
+import { EmployeesPage } from '../modules/employees/pages/EmployeesPage';
 import { CashEntryFormPage } from '../modules/expenses/pages/CashEntryFormPage';
 import { ExpensesPage, OtherIncomePage } from '../modules/expenses/pages/CashEntriesPage';
 import { CategoriesPage } from '../modules/expenses/pages/CategoriesPage';
@@ -146,6 +148,20 @@ export const APPS: readonly AppDefinition[] = [
       { name: 'expenses.entries.show', element: <CashEntryFormPage /> },
       { name: 'expenses.categories', element: <CategoriesPage /> },
       { name: 'expenses.report', element: <ExpenseReportPage /> },
+    ],
+  },
+  {
+    key: 'employees',
+    label: __('Employees'),
+    description: __('Staff records, salaries, advances and statements'),
+    icon: Users,
+    color: 'bg-gradient-to-br from-cyan-500 to-indigo-700',
+    roles: EVERYONE,
+    menus: [{ label: __('Employees'), name: 'employees.index' }],
+    routes: [
+      { name: 'employees.index', element: <EmployeesPage /> },
+      { name: 'employees.new', element: <EmployeeFormPage /> },
+      { name: 'employees.show', element: <EmployeeFormPage /> },
     ],
   },
   {

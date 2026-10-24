@@ -23,4 +23,6 @@ class InvoiceLineRecord {
     private BigDecimal unitPrice;
     @Column(precision = 19, scale = 4)
     private BigDecimal unitCost;
+    @Column(precision = 19, scale = 3)
+    private BigDecimal returnedQuantity;
 }

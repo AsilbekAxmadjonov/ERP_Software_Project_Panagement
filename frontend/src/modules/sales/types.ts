@@ -1,4 +1,4 @@
-export const PaymentProgress = { UNPAID: 'UNPAID', PARTIAL: 'PARTIAL', PAID: 'PAID' } as const;
+export const PaymentProgress = { UNPAID: 'UNPAID', PARTIAL: 'PARTIAL', PAID: 'PAID', CREDITED: 'CREDITED' } as const;
 export type PaymentProgress = (typeof PaymentProgress)[keyof typeof PaymentProgress];
 
 export const PaymentChannel = { CASH: 'CASH', BANK: 'BANK' } as const;
@@ -11,6 +11,9 @@ export interface InvoiceLine {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  returnedQuantity: number;
+  /** Quantity that can still be returned on a credit note. */
+  returnable: number;
 }
 
 export interface Invoice {
@@ -22,6 +25,8 @@ export interface Invoice {
   total: number;
   cost: number;
   paid: number;
+  /** Value of goods returned through credit notes. */
+  credited: number;
   outstanding: number;
   status: PaymentProgress;
   createdBy: string;
@@ -99,4 +104,34 @@ export interface PaymentInput {
   method: PaymentChannel;
   date: string;
   note: string;
+}
+
+export interface CreditNoteLine {
+  productId: number;
+  productName: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface CreditNote {
+  id: number;
+  number: string;
+  invoiceId: number;
+  invoiceNumber: string;
+  customerId: number;
+  customerName: string;
+  date: string;
+  reason: string | null;
+  total: number;
+  cost: number;
+  createdBy: string;
+  lines: CreditNoteLine[];
+}
+
+export interface CreditNoteInput {
+  date: string;
+  reason: string;
+  items: { productId: number; quantity: number }[];
 }

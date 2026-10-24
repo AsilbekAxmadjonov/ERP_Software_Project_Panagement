@@ -1,6 +1,6 @@
 import { http } from '../../lib/http';
 import type {
-  CustomerBalance, CustomerOption, Invoice, InvoiceInput, LedgerRow, Payment, PaymentInput, ProductOption, SalesReportRow,
+  CreditNote, CreditNoteInput, CustomerBalance, CustomerOption, Invoice, InvoiceInput, LedgerRow, Payment, PaymentInput, ProductOption, SalesReportRow,
 } from './types';
 
 export interface ReportFilter {
@@ -12,7 +12,10 @@ export interface ReportFilter {
 
 export const salesApi = {
   invoices: () => http.get<Invoice[]>('/api/sales/invoices'),
+  invoice: (id: number) => http.get<Invoice>(`/api/sales/invoices/${id}`),
   issueInvoice: (input: InvoiceInput) => http.post<Invoice>('/api/sales/invoices', input),
+  creditNotes: () => http.get<CreditNote[]>('/api/sales/credit-notes'),
+  issueCreditNote: (invoiceId: number, input: CreditNoteInput) => http.post<CreditNote>(`/api/sales/invoices/${invoiceId}/credit-notes`, input),
   payments: () => http.get<Payment[]>('/api/sales/payments'),
   recordPayment: (input: PaymentInput) => http.post<Payment>('/api/sales/payments', input),
   customerBalances: () => http.get<CustomerBalance[]>('/api/customer-balances'),

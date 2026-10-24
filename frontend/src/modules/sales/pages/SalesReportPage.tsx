@@ -4,6 +4,7 @@ import { __ } from '../../../lib/i18n';
 import { useLoad } from '../../../lib/useLoad';
 import { ControlPanel } from '../../../ui/ControlPanel';
 import { StatCard } from '../../../ui/EmptyState';
+import { listSheet } from '../../../ui/export';
 import { ListView, type Column } from '../../../ui/ListView';
 import { Many2One } from '../../../ui/Many2One';
 import { salesApi, type ReportFilter } from '../api';
@@ -24,8 +25,7 @@ const COLUMNS: readonly Column<SalesReportRow>[] = [
   { key: 'invoice', label: __('Invoice'), render: (r) => r.invoice, sortValue: (r) => r.invoice },
   { key: 'customer', label: __('Customer'), render: (r) => r.customer, sortValue: (r) => r.customer },
   { key: 'product', label: __('Product'), render: (r) => r.product, sortValue: (r) => r.product },
-  { key: 'qty', label: __('Quantity'), align: 'right', render: (r) => `${quantity(r.quantity)} ${r.unit.toLowerCase()}`, sortValue: (r) => r.quantity },
-  { key: 'price', label: __('Unit price'), align: 'right', render: (r) => money(r.unitPrice) },
+  { key: 'qty', label: __('Quantity'), align: 'right', render: (r) => `${quantity(r.quantity)} ${r.unit.toLowerCase()}`, sortValue: (r) => r.quantity, exportFormat: 'quantity' },  { key: 'price', label: __('Unit price'), align: 'right', render: (r) => money(r.unitPrice), exportValue: (r) => r.unitPrice },
   { key: 'total', label: __('Total'), align: 'right', render: (r) => money(r.total), sortValue: (r) => r.total, sum: (r) => r.total, formatSum: money },
 ];
 
@@ -45,7 +45,16 @@ export function SalesReportPage() {
 
   return (
     <>
-      <ControlPanel breadcrumbs={[{ label: __('Sales analysis') }]} />
+      <ControlPanel
+        breadcrumbs={[{ label: __('Sales analysis') }]}
+        exportData={() => ({
+          fileName: `sales-report_${filter.from || 'start'}_${filter.to || 'today'}`,
+          sheets: [
+            listSheet(__('Sales lines'), COLUMNS, rows),
+            { name: DIMENSIONS[dimension].label, columns: [{ label: DIMENSIONS[dimension].label }, { label: __('Revenue') }], rows: totals },
+          ],
+        })}
+      />
       <div className="mx-auto max-w-7xl space-y-4 p-4">
         <div className="card grid gap-3 sm:grid-cols-4">
           <div>

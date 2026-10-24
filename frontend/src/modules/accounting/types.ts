@@ -135,6 +135,17 @@ export interface CashMovement {
   balance: number;
 }
 
+/** Cash and bank as of `to`; revenue, expenses and profit within [from, to]. */
+export interface AccountingSummary {
+  from: string;
+  to: string;
+  cash: number;
+  bank: number;
+  revenue: number;
+  expenses: number;
+  profit: number;
+}
+
 export interface EntryInput {
   date: string;
   reference: string;

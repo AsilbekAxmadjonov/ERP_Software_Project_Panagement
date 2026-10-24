@@ -1,13 +1,14 @@
 import { Package, Plus, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { money, quantity } from '../../../lib/format';
+import { money, quantity, today } from '../../../lib/format';
 import { __ } from '../../../lib/i18n';
 import { route } from '../../../lib/routes';
 import { useLoad } from '../../../lib/useLoad';
 import { Badge } from '../../../ui/Badge';
 import { ControlPanel, type ViewMode } from '../../../ui/ControlPanel';
 import { EmptyState } from '../../../ui/EmptyState';
+import { listSheet } from '../../../ui/export';
 import { KanbanGrid } from '../../../ui/Kanban';
 import { ListView, type Column } from '../../../ui/ListView';
 import { useSearch } from '../../../ui/search';
@@ -23,10 +24,10 @@ const COLUMNS: readonly Column<Product>[] = [
   { key: 'unit', label: __('Unit'), render: (p) => UNIT_LABEL[p.unit] },
   { key: 'price', label: __('Sales price'), align: 'right', render: (p) => money(p.salePrice), sortValue: (p) => p.salePrice },
   { key: 'cost', label: __('Avg cost'), align: 'right', render: (p) => money(p.averageCost), sortValue: (p) => p.averageCost },
-  { key: 'qty', label: __('On hand'), align: 'right', render: (p) => <span className={onHandClass(p)}>{quantity(p.quantity)}</span>, sortValue: (p) => p.quantity },
-  { key: 'min', label: __('Min. qty'), align: 'right', render: (p) => (p.reorderLevel === null ? '' : quantity(p.reorderLevel)), className: 'text-gray-500' },
+  { key: 'qty', label: __('On hand'), align: 'right', render: (p) => <span className={onHandClass(p)}>{quantity(p.quantity)}</span>, sortValue: (p) => p.quantity, exportFormat: 'quantity' },
+  { key: 'min', label: __('Min. qty'), align: 'right', render: (p) => (p.reorderLevel === null ? '' : quantity(p.reorderLevel)), className: 'text-gray-500', exportValue: (p) => p.reorderLevel, exportFormat: 'quantity' },
   { key: 'value', label: __('Stock value'), align: 'right', render: (p) => money(p.stockValue), sortValue: (p) => p.stockValue, sum: (p) => p.stockValue, formatSum: money },
-  { key: 'alert', label: '', render: (p) => (p.lowStock ? <Badge tone="yellow">{__('Low stock')}</Badge> : null) },
+  { key: 'alert', label: '', render: (p) => (p.lowStock ? <Badge tone="yellow">{__('Low stock')}</Badge> : null), exportValue: (p) => (p.lowStock ? __('Low stock') : null) },
 ];
 
 export function ProductsPage() {
@@ -53,6 +54,7 @@ export function ProductsPage() {
     <>
       <ControlPanel
         breadcrumbs={[{ label: __('Products') }]}
+        exportData={() => ({ fileName: `products_${today()}`, sheets: [listSheet(__('Products'), COLUMNS, search.results)] })}
         actions={<button className="btn" onClick={create}><Plus className="h-4 w-4" />{__('New')}</button>}
         search={search}
         view={{ mode, onChange: setMode }}

@@ -29,8 +29,20 @@ body { @apply bg-canvas text-sm text-gray-800 antialiased; }
   .td { @apply px-3 py-1.5 text-sm; }
 }
 
+/* Print / PDF: only the report or list itself, full width, with headers repeated on every page. */
+@page { margin: 12mm; }
+
 @media print {
   .no-print { display: none !important; }
-  body { background: white; }
+  body { background: white; font-size: 11px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .o-sheet { box-shadow: none !important; border: none !important; }
+  .card { box-shadow: none !important; break-inside: avoid; }
+  .card:has(table) { break-inside: auto; }
+  .overflow-x-auto { overflow: visible !important; }
+  .max-w-7xl, .max-w-4xl { max-width: none !important; }
+  .th { position: static; }
+  thead { display: table-header-group; }
+  /* Totals print once, after the last row, instead of repeating at the foot of every page. */
+  tfoot { display: table-row-group; }
+  tr { break-inside: avoid; }
 }

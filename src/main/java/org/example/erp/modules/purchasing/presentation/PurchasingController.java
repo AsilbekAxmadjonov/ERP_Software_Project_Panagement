@@ -7,8 +7,10 @@ import org.example.erp.modules.purchasing.application.actions.*;
 import org.example.erp.modules.purchasing.application.commands.CreatePurchaseOrderCommand;
 import org.example.erp.modules.purchasing.application.commands.RecordSupplierPaymentCommand;
 import org.example.erp.modules.purchasing.application.dto.PurchaseOrderDTO;
+import org.example.erp.modules.purchasing.application.dto.PurchaseReportRowDTO;
 import org.example.erp.modules.purchasing.application.dto.SupplierPaymentDTO;
 import org.example.erp.modules.purchasing.application.enums.PaymentChannel;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -26,10 +28,11 @@ class PurchasingController {
     private final ListPurchaseOrders listOrders;
     private final RecordSupplierPayment recordPayment;
     private final ListSupplierPayments listPayments;
+    private final GetPurchaseReport purchaseReport;
 
     PurchasingController(CreatePurchaseOrder createOrder, ConfirmPurchaseOrder confirmOrder, ReceivePurchaseOrder receiveOrder,
                          CancelPurchaseOrder cancelOrder, FindPurchaseOrder findOrder, ListPurchaseOrders listOrders,
-                         RecordSupplierPayment recordPayment, ListSupplierPayments listPayments) {
+                         RecordSupplierPayment recordPayment, ListSupplierPayments listPayments, GetPurchaseReport purchaseReport) {
         this.createOrder = createOrder;
         this.confirmOrder = confirmOrder;
         this.receiveOrder = receiveOrder;
@@ -38,6 +41,7 @@ class PurchasingController {
         this.listOrders = listOrders;
         this.recordPayment = recordPayment;
         this.listPayments = listPayments;
+        this.purchaseReport = purchaseReport;
     }
 
     record ItemRequest(@NotNull Long productId, @NotNull BigDecimal quantity, @NotNull BigDecimal unitCost) {}
@@ -90,5 +94,13 @@ class PurchasingController {
     SupplierPaymentDTO pay(@RequestBody @Valid PaymentRequest r) {
         return recordPayment.handle(new RecordSupplierPaymentCommand(r.supplierId(), r.orderId(), r.amount(), r.method(),
                 r.date(), r.note()));
+    }
+
+    @GetMapping("/report")
+    List<PurchaseReportRowDTO> report(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                      @RequestParam(required = false) Long supplierId,
+                                      @RequestParam(required = false) Long productId) {
+        return purchaseReport.handle(from, to, supplierId, productId);
     }
 }

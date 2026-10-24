@@ -59,6 +59,11 @@ public class PurchasingModuleConfig {
     }
 
     @Bean
+    GetPurchaseReport getPurchaseReport(PurchaseOrderRepository orders) {
+        return new GetPurchaseReport(orders);
+    }
+
+    @Bean
     ListSupplierPayments listSupplierPayments(SupplierPaymentRepository payments) {
         return new ListSupplierPayments(payments);
     }

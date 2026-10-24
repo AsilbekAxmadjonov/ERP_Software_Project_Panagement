@@ -81,6 +81,21 @@ export interface ProductOption {
   active: boolean;
 }
 
+/** One item of a received order; date is the receipt date. */
+export interface PurchaseReportRow {
+  date: string;
+  orderId: number;
+  order: string;
+  supplierId: number;
+  supplier: string;
+  productId: number;
+  product: string;
+  unit: string;
+  quantity: number;
+  unitCost: number;
+  total: number;
+}
+
 export interface OrderInput {
   supplierId: number;
   date: string;
